@@ -160,13 +160,14 @@ button { color: inherit; }
 .fallback-beacon i { position: absolute; left: 50%; bottom: 13px; width: 105px; height: 34px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(ellipse, rgba(85,224,255,.55), rgba(24,43,51,.85) 50%, #12151d); border: 1px solid rgba(109,232,255,.32); box-shadow: 0 10px 30px #020305, 0 0 24px rgba(81,219,249,.2); }
 .fallback-beacon em { position: absolute; left: 50%; top: 28%; width: 4px; height: 98px; transform: translateX(-50%); background: linear-gradient(rgba(160,243,255,.55), transparent); filter: blur(3px); }
 .fallback-creature { position: absolute; z-index: 3; top: 50%; width: 130px; height: 130px; transition: left .1s linear, transform .25s ease; filter: drop-shadow(0 12px 14px rgba(0,0,0,.8)); }
-.fallback-creature.testing .fallback-limb { animation: gait .55s ease-in-out infinite alternate; }
+.fallback-creature.testing .fallback-limb { animation: gait var(--gait-duration, .8s) ease-in-out infinite alternate; animation-delay: var(--limb-delay, 0s); }
 .fallback-creature.failed { transform: translate(-50%, -28%) scale(.88) rotate(-22deg) !important; filter: saturate(.5) drop-shadow(0 10px 12px #000); }
-.fallback-limb { --limb-length: 70px; position: absolute; z-index: 1; left: 50%; top: 50%; width: var(--limb-length); height: 12px; transform-origin: 0 50%; transform: rotate(var(--limb-angle)); display: flex; align-items: center; padding-left: 35px; }
-.fallback-limb:nth-child(even) { animation-delay: -.3s !important; }
-.fallback-limb i { flex: 1; height: 7px; min-width: 12px; margin-right: 4px; border-radius: 9px; background: linear-gradient(180deg, #e2dceb, #81778f); border: 1px solid rgba(255,255,255,.22); box-shadow: inset 0 -2px 2px rgba(0,0,0,.35); position: relative; }
-.fallback-limb i::after { content: ""; position: absolute; right: -5px; top: 50%; width: 8px; height: 8px; transform: translateY(-50%); border-radius: 50%; background: #2c2538; border: 1px solid #9c63ff; box-shadow: 0 0 7px #7e3fe4; }
-.fallback-core { position: absolute; z-index: 4; left: 50%; top: 50%; width: 66px; height: 66px; transform: translate(-50%, -50%) rotate(45deg); border-radius: 31% 52% 39% 54%; background: linear-gradient(145deg, rgba(235,217,255,.9), rgba(139,65,235,.42) 48%, rgba(54,16,103,.7)); border: 1px solid rgba(240,220,255,.72); box-shadow: inset 0 0 18px rgba(255,255,255,.28), 0 0 16px #8e4cf4, 0 0 45px rgba(143,69,238,.45); animation: core-float 2.2s ease-in-out infinite; }
+.fallback-limb { --limb-length: 70px; position: absolute; z-index: 1; left: 50%; top: 50%; width: var(--limb-length); height: 12px; transform-origin: 0 50%; transform: rotate(var(--limb-angle)); display: flex; align-items: center; padding-left: 29px; }
+.fallback-limb i { flex: 1; height: 7px; min-width: 10px; margin-right: 0; border-radius: 9px; background: linear-gradient(180deg, #e2dceb, #81778f); border: 1px solid rgba(255,255,255,.22); box-shadow: inset 0 -2px 2px rgba(0,0,0,.35); position: relative; transform-origin: left center; }
+.fallback-limb i:nth-child(even) { transform: rotate(7deg); }
+.fallback-limb i:nth-child(3n) { transform: rotate(-7deg); }
+.fallback-limb i::after { content: ""; position: absolute; z-index: 2; right: -4px; top: 50%; width: 8px; height: 8px; transform: translateY(-50%); border-radius: 50%; background: #2c2538; border: 1px solid #9c63ff; box-shadow: 0 0 7px #7e3fe4; }
+.fallback-core { position: absolute; z-index: 4; left: 50%; top: 50%; width: calc(56px + var(--body-squash, 1) * 10px); height: calc(52px + var(--body-squash, 1) * 12px); transform: translate(-50%, -50%) rotate(45deg); border-radius: 31% 52% 39% 54%; background: linear-gradient(145deg, rgba(235,217,255,.9), rgba(139,65,235,.42) 48%, rgba(54,16,103,.7)); border: 1px solid rgba(240,220,255,.72); box-shadow: inset 0 0 18px rgba(255,255,255,.28), 0 0 16px #8e4cf4, 0 0 45px rgba(143,69,238,.45); animation: core-float 2.2s ease-in-out infinite; }
 .fallback-core span { position: absolute; inset: 20px; border-radius: 50%; background: white; box-shadow: 0 0 10px white, 0 0 28px #b768ff; }
 .fallback-dust i { position: absolute; left: calc(18% + var(--i) * 3.6%); top: calc(24% + (var(--i) % 6) * 8%); width: 2px; height: 2px; border-radius: 50%; background: #c6a4ff; box-shadow: 0 0 7px #9d5eff; opacity: calc(.12 + (var(--i) % 4) * .1); animation: dust 4s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -.23s); }
 .webgl-note { position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%); font-family: var(--font-geist-mono), monospace; font-size: 7px; letter-spacing: .16em; color: rgba(220,205,240,.17); }
@@ -264,6 +265,13 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 .metric-label strong { margin-left: auto; font-family: var(--font-geist-mono), monospace; font-size: 9px; font-weight: 450; color: rgba(242,235,250,.78); }
 .metric-track { position: relative; height: 2px; margin-top: 7px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
 .metric-track i { display: block; height: 100%; border-radius: 4px; transition: width .35s ease; }
+.telemetry-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 1px 0 8px; }
+.telemetry-strip > span { display: flex; flex-direction: column; gap: 4px; padding: 9px; border-radius: 9px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); }
+.telemetry-strip small, .gait-readout small { font-family: var(--font-geist-mono), monospace; font-size: 6px; letter-spacing: .13em; color: rgba(220,208,236,.32); }
+.telemetry-strip strong { font-family: var(--font-geist-mono), monospace; font-size: 11px; font-weight: 470; color: #d9c3ff; }
+.telemetry-strip em { font-size: 7px; font-style: normal; color: rgba(218,209,229,.4); }
+.gait-readout { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px; border-left: 2px solid rgba(157,95,255,.65); background: linear-gradient(90deg, rgba(127,62,224,.09), transparent); }
+.gait-readout strong { font-size: 9px; font-weight: 530; color: rgba(235,225,247,.74); }
 .challenge-card, .discovery-card { gap: 11px; border-radius: 11px; padding: 11px; }
 .challenge-card { margin-top: 7px; border: 1px solid rgba(100, 220, 255, .16); background: rgba(41, 134, 153, .07); }
 .challenge-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: #8ceaff; background: rgba(72, 205, 233, .1); border: 1px solid rgba(110, 229, 255, .17); }

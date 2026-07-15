@@ -38,19 +38,65 @@ type Genes = {
 };
 
 type RunState = "design" | "incubating" | "ready" | "testing" | "paused" | "success" | "failed";
+type FailureReason = null | "tipped" | "exhausted" | "stalled" | "timeout";
+
+type Simulation = {
+  distance: number;
+  velocity: number;
+  energy: number;
+  elapsed: number;
+  dynamicStability: number;
+};
 
 const INITIAL_GENES: Genes = { limbs: 6, segments: 3, spread: 52, rhythm: 1.2 };
+const INITIAL_SIMULATION: Simulation = { distance: 0, velocity: 0, energy: 100, elapsed: 0, dynamicStability: 100 };
+const COURSE_DISTANCE = 6.8;
 
 const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
 
 function metricsFor(genes: Genes) {
+  const segmentIntegrity = [0, 0.58, 0.88, 1, 0.9, 0.68][genes.segments];
+  const support = clamp((genes.limbs - 2) / 4, 0.18, 1);
+  const spreadFitness = clamp(1 - Math.abs(genes.spread - 52) / 40, 0.16, 1);
   const stability = clamp(
-    96 - Math.abs(genes.limbs - 6) * 9 - Math.abs(genes.spread - 52) * 0.72 - Math.max(0, genes.segments - 4) * 8,
+    100 * (support * 0.42 + spreadFitness * 0.35 + segmentIntegrity * 0.23) - Math.max(0, genes.rhythm - 1.8) * 12,
   );
-  const mobility = clamp(22 + genes.limbs * 5.8 + genes.segments * 7.5 + genes.rhythm * 15 - genes.spread * 0.1);
-  const energy = clamp(108 - genes.limbs * genes.segments * 2.35 - genes.rhythm * 9 + genes.spread * 0.08);
-  const viability = Math.round(stability * 0.47 + mobility * 0.34 + energy * 0.19);
-  return { stability: Math.round(stability), mobility: Math.round(mobility), energy: Math.round(energy), viability };
+  const idealCadence = clamp(1.45 - (genes.limbs - 6) * 0.055 + (genes.segments - 3) * 0.04, 0.82, 1.72);
+  const coordination = clamp(1 - Math.abs(genes.rhythm - idealCadence) * 0.55, 0.2, 1);
+  const traction = segmentIntegrity * (0.72 + spreadFitness * 0.28);
+  const stride = (0.18 + genes.spread / 95) * (0.6 + genes.segments * 0.16);
+  const loadPenalty = clamp(1 - Math.max(0, genes.limbs * genes.segments - 18) * 0.018, 0.38, 1);
+  const speed = stride * genes.rhythm * 1.35 * traction * coordination * loadPenalty * Math.pow(stability / 100, 1.3);
+  const energyDrain = 3 + genes.limbs * genes.segments * 0.25 + genes.rhythm * genes.rhythm * 2.2 + Math.max(0, genes.segments - 3) * 2.3;
+  const estimatedRange = speed * (100 / energyDrain);
+  const mobility = clamp(speed / 1.55 * 100);
+  const energy = clamp(100 - energyDrain * 3.2);
+  const viability = clamp(Math.round(stability * 0.4 + mobility * 0.32 + Math.min(100, estimatedRange / COURSE_DISTANCE * 100) * 0.28));
+  const gait = genes.limbs <= 3
+    ? "Trípode alternado"
+    : genes.limbs <= 5
+      ? "Apoio cruzado"
+      : genes.limbs <= 7
+        ? "Onda radial"
+        : "Onda metacrônica";
+  return {
+    stability: Math.round(stability),
+    mobility: Math.round(mobility),
+    energy: Math.round(energy),
+    viability: Math.round(viability),
+    speed,
+    energyDrain,
+    gait,
+    stride,
+    estimatedRange,
+  };
+}
+
+function failureLabel(reason: FailureReason) {
+  if (reason === "tipped") return "COLAPSO ESTRUTURAL";
+  if (reason === "exhausted") return "ENERGIA ESGOTADA";
+  if (reason === "stalled") return "SEM TRAÇÃO";
+  return "TEMPO ESGOTADO";
 }
 
 function playTone(kind: "grow" | "launch" | "success" | "click", muted: boolean) {
@@ -171,16 +217,57 @@ function Beacon({ active }: { active: boolean }) {
   );
 }
 
+function solveLegChain(base: THREE.Vector3, target: THREE.Vector3, count: number, boneLength: number, bend: THREE.Vector3) {
+  const points = Array.from({ length: count + 1 }, (_, index) => {
+    const alpha = index / count;
+    return base.clone().lerp(target, alpha).addScaledVector(bend, Math.sin(alpha * Math.PI));
+  });
+  const totalLength = boneLength * count;
+  const baseToTarget = target.clone().sub(base);
+  if (baseToTarget.length() >= totalLength) {
+    const direction = baseToTarget.normalize();
+    for (let index = 1; index <= count; index += 1) points[index].copy(base).addScaledVector(direction, boneLength * index);
+    return points;
+  }
+  for (let iteration = 0; iteration < 5; iteration += 1) {
+    points[count].copy(target);
+    for (let index = count - 1; index >= 0; index -= 1) {
+      const direction = points[index].clone().sub(points[index + 1]).normalize();
+      points[index].copy(points[index + 1]).addScaledVector(direction, boneLength);
+    }
+    points[0].copy(base);
+    for (let index = 0; index < count; index += 1) {
+      const direction = points[index + 1].clone().sub(points[index]).normalize();
+      points[index + 1].copy(points[index]).addScaledVector(direction, boneLength);
+    }
+  }
+  return points;
+}
+
+function limbPhase(limb: number, genes: Genes, time: number) {
+  const cycle = time * genes.rhythm * Math.PI * 2;
+  if (genes.limbs <= 3) return cycle + limb * Math.PI * 2 / 3;
+  if (genes.limbs <= 5) return cycle + (limb % 2) * Math.PI + Math.floor(limb / 2) * 0.28;
+  if (genes.limbs <= 7) return cycle + (limb % 2) * Math.PI;
+  return cycle + limb * 0.72;
+}
+
 function ProceduralCreature({
   genes,
   runState,
   progress,
   incubation,
+  elapsed,
+  velocity,
+  failureReason,
 }: {
   genes: Genes;
   runState: RunState;
   progress: number;
   incubation: number;
+  elapsed: number;
+  velocity: number;
+  failureReason: FailureReason;
 }) {
   const root = useRef<THREE.Group>(null);
   const core = useRef<THREE.Mesh>(null);
@@ -197,6 +284,7 @@ function ProceduralCreature({
   const direction = useMemo(() => new THREE.Vector3(), []);
   const quaternion = useMemo(() => new THREE.Quaternion(), []);
   const isTesting = runState === "testing" || runState === "paused" || runState === "success" || runState === "failed";
+  const morphology = useMemo(() => metricsFor(genes), [genes]);
 
   useEffect(() => {
     limbRefs.current = limbRefs.current.slice(0, genes.limbs * genes.segments);
@@ -204,14 +292,16 @@ function ProceduralCreature({
   }, [genes.limbs, genes.segments]);
 
   useFrame(({ clock }, delta) => {
-    const time = clock.elapsedTime;
+    const time = isTesting ? elapsed : clock.elapsedTime * 0.18;
     if (root.current) {
       const x = isTesting ? -3.25 + progress * 0.067 : -3.25;
-      const failureDrop = runState === "failed" ? 0.43 : 0;
-      const gaitBob = runState === "testing" ? Math.abs(Math.sin(time * genes.rhythm * 4.2)) * 0.08 : Math.sin(time * 1.3) * 0.025;
+      const failureDrop = runState === "failed" ? failureReason === "tipped" ? 0.55 : 0.28 : 0;
+      const gaitAmplitude = genes.limbs <= 3 ? 0.14 : genes.limbs >= 8 ? 0.045 : 0.08;
+      const gaitBob = runState === "testing" ? Math.abs(Math.sin(time * genes.rhythm * Math.PI * 2)) * gaitAmplitude : Math.sin(time * 1.3) * 0.025;
       root.current.position.x = THREE.MathUtils.damp(root.current.position.x, x, 6, delta);
       root.current.position.y = THREE.MathUtils.damp(root.current.position.y, 0.83 - failureDrop + gaitBob, 6, delta);
-      root.current.rotation.z = THREE.MathUtils.damp(root.current.rotation.z, runState === "failed" ? -0.5 : 0, 5, delta);
+      const activeRoll = runState === "testing" ? Math.sin(time * genes.rhythm * Math.PI * 2) * Math.max(0, 7 - genes.limbs) * 0.012 : 0;
+      root.current.rotation.z = THREE.MathUtils.damp(root.current.rotation.z, runState === "failed" ? -0.72 : activeRoll, 5, delta);
       const birthScale = runState === "incubating" ? Math.max(0.04, incubation / 100) : 1;
       root.current.scale.setScalar(THREE.MathUtils.damp(root.current.scale.x, birthScale, 8, delta));
     }
@@ -222,44 +312,60 @@ function ProceduralCreature({
       core.current.rotation.x += delta * 0.08;
     }
 
-    segments.forEach(({ limb, segment }, index) => {
-      const mesh = limbRefs.current[index];
-      const joint = jointRefs.current[index];
-      if (!mesh || !joint) return;
+    for (let limb = 0; limb < genes.limbs; limb += 1) {
       const angle = (limb / genes.limbs) * Math.PI * 2;
       const radialX = Math.cos(angle);
       const radialZ = Math.sin(angle);
-      const phase = time * genes.rhythm * 4 + limb * Math.PI;
-      const walking = runState === "testing" ? 1 : 0.18;
-      const stride = Math.sin(phase) * 0.18 * walking * (segment + 1) / genes.segments;
-      const lift = Math.max(0, Math.sin(phase)) * 0.22 * walking;
-      const length = 0.42 + genes.spread / 220;
-      const startRadius = 0.48 + segment * length;
-      const endRadius = 0.48 + (segment + 1) * length;
-      const startY = -0.08 - (segment / genes.segments) * 0.44;
-      const endY = -0.08 - ((segment + 1) / genes.segments) * 0.47 + lift;
-      const tangentX = -radialZ * stride;
-      const tangentZ = radialX * stride;
-      start.set(radialX * startRadius + tangentX * 0.4, startY, radialZ * startRadius + tangentZ * 0.4);
-      end.set(radialX * endRadius + tangentX, endY, radialZ * endRadius + tangentZ);
-      midpoint.copy(start).add(end).multiplyScalar(0.5);
-      direction.copy(end).sub(start);
-      const len = direction.length();
-      quaternion.setFromUnitVectors(unitY, direction.normalize());
-      mesh.position.copy(midpoint);
-      mesh.quaternion.copy(quaternion);
-      mesh.scale.set(1, len, 1);
-      joint.position.copy(end);
-    });
+      const phase = limbPhase(limb, genes, time);
+      const walking = runState === "testing" ? clamp(velocity / Math.max(0.1, morphology.speed), 0.18, 1) : 0.08;
+      const stride = Math.sin(phase) * (0.16 + genes.spread / 230) * walking;
+      const lift = Math.max(0, Math.sin(phase)) * (0.13 + genes.segments * 0.025) * walking;
+      const base = new THREE.Vector3(radialX * 0.48, -0.02, radialZ * 0.48);
+      const reach = 0.55 + genes.spread / 100 * 0.62;
+      const target = new THREE.Vector3(
+        radialX * (0.48 + reach) - radialZ * stride,
+        -0.78 + lift,
+        radialZ * (0.48 + reach) + radialX * stride,
+      );
+      const boneLength = 0.38 + genes.spread / 250;
+      const bend = new THREE.Vector3(-radialZ * 0.18, 0.2 + genes.segments * 0.025, radialX * 0.18);
+      const chain = solveLegChain(base, target, genes.segments, boneLength, bend);
+
+      for (let segment = 0; segment < genes.segments; segment += 1) {
+        const index = limb * genes.segments + segment;
+        const mesh = limbRefs.current[index];
+        const joint = jointRefs.current[index];
+        if (!mesh || !joint) continue;
+        start.copy(chain[segment]);
+        end.copy(chain[segment + 1]);
+        midpoint.copy(start).add(end).multiplyScalar(0.5);
+        direction.copy(end).sub(start);
+        const len = direction.length();
+        quaternion.setFromUnitVectors(unitY, direction.normalize());
+        mesh.position.copy(midpoint);
+        mesh.quaternion.copy(quaternion);
+        mesh.scale.set(1, len, 1);
+        joint.position.copy(end);
+      }
+    }
   });
 
   return (
     <group ref={root} position={[-3.25, 0.83, 0]}>
       <group visible={incubation > 8 || runState !== "incubating"}>
+        {Array.from({ length: genes.limbs }, (_, limb) => {
+          const angle = limb / genes.limbs * Math.PI * 2;
+          return (
+            <mesh key={`mount-${limb}`} position={[Math.cos(angle) * 0.48, -0.02, Math.sin(angle) * 0.48]} castShadow>
+              <sphereGeometry args={[0.13, 16, 12]} />
+              <meshStandardMaterial color="#30273d" metalness={0.82} roughness={0.2} emissive="#9c54ff" emissiveIntensity={1.15} />
+            </mesh>
+          );
+        })}
         {segments.map(({ limb, segment }, index) => (
           <group key={`${limb}-${segment}`} visible={runState !== "incubating" || incubation > 20 + (segment / genes.segments) * 55}>
             <mesh ref={(node) => { limbRefs.current[index] = node; }} castShadow>
-              <capsuleGeometry args={[0.075, 1, 7, 12]} />
+              <cylinderGeometry args={[Math.max(0.045, 0.082 - segment * 0.007), Math.max(0.045, 0.082 - segment * 0.007), 1, 12]} />
               <meshStandardMaterial
                 color={segment === genes.segments - 1 ? "#b7a7ce" : "#ded7e9"}
                 roughness={0.28}
@@ -274,27 +380,29 @@ function ProceduralCreature({
             </mesh>
           </group>
         ))}
-        <mesh ref={core} castShadow>
-          <icosahedronGeometry args={[0.55, 2]} />
-          <MeshTransmissionMaterial
-            backside
-            samples={4}
-            resolution={256}
-            transmission={0.92}
-            thickness={0.72}
-            roughness={0.13}
-            chromaticAberration={0.08}
-            distortion={0.22}
-            distortionScale={0.3}
-            temporalDistortion={0.08}
-            ior={1.34}
-            color="#b98cff"
-          />
-        </mesh>
-        <mesh scale={0.56}>
-          <icosahedronGeometry args={[0.55, 2]} />
-          <meshStandardMaterial color="#f0dcff" emissive="#a13cff" emissiveIntensity={5} toneMapped={false} />
-        </mesh>
+        <group scale={[0.82 + genes.limbs * 0.028, 0.78 + genes.segments * 0.06, 0.82 + genes.limbs * 0.028]}>
+          <mesh ref={core} castShadow>
+            <icosahedronGeometry args={[0.55, genes.segments >= 4 ? 1 : 2]} />
+            <MeshTransmissionMaterial
+              backside
+              samples={4}
+              resolution={256}
+              transmission={0.92}
+              thickness={0.72}
+              roughness={0.13}
+              chromaticAberration={0.08}
+              distortion={0.12 + genes.segments * 0.035}
+              distortionScale={0.3}
+              temporalDistortion={0.08}
+              ior={1.34}
+              color="#b98cff"
+            />
+          </mesh>
+          <mesh scale={0.56}>
+            <icosahedronGeometry args={[0.55, 2]} />
+            <meshStandardMaterial color="#f0dcff" emissive="#a13cff" emissiveIntensity={5} toneMapped={false} />
+          </mesh>
+        </group>
         <pointLight color="#a66cff" intensity={11} distance={3.5} decay={2} />
         <Sparkles count={16} scale={1.25} size={2.1} speed={0.5} color="#d8b9ff" />
       </group>
@@ -326,7 +434,7 @@ function IncubatorField({ active, progress }: { active: boolean; progress: numbe
   );
 }
 
-function Scene({ genes, runState, progress, incubation }: { genes: Genes; runState: RunState; progress: number; incubation: number }) {
+function Scene({ genes, runState, progress, incubation, simulation, failureReason }: { genes: Genes; runState: RunState; progress: number; incubation: number; simulation: Simulation; failureReason: FailureReason }) {
   const testing = ["testing", "paused", "success", "failed"].includes(runState);
   return (
     <>
@@ -337,7 +445,7 @@ function Scene({ genes, runState, progress, incubation }: { genes: Genes; runSta
       <spotLight position={[-3.4, 5.5, 2]} target-position={[-3.2, 0, 0]} angle={0.45} penumbra={0.8} intensity={9} color="#8250ff" castShadow />
       <Chamber />
       <Beacon active={testing} />
-      <ProceduralCreature genes={genes} runState={runState} progress={progress} incubation={incubation} />
+      <ProceduralCreature genes={genes} runState={runState} progress={progress} incubation={incubation} elapsed={simulation.elapsed} velocity={simulation.velocity} failureReason={failureReason} />
       <IncubatorField active={runState === "incubating"} progress={incubation} />
       <ContactShadows position={[0, 0.08, 0]} opacity={0.75} scale={10} blur={2.2} far={4} color="#05030a" />
       <Environment preset="warehouse" environmentIntensity={0.28} />
@@ -360,7 +468,7 @@ function Scene({ genes, runState, progress, incubation }: { genes: Genes; runSta
   );
 }
 
-function FallbackScene({ genes, runState, progress, incubation }: { genes: Genes; runState: RunState; progress: number; incubation: number }) {
+function FallbackScene({ genes, runState, progress, incubation, simulation }: { genes: Genes; runState: RunState; progress: number; incubation: number; simulation: Simulation }) {
   const creatureScale = runState === "incubating" ? Math.max(0.08, incubation / 100) : 1;
   const creatureLeft = 28 + progress * 0.42;
   return (
@@ -371,13 +479,13 @@ function FallbackScene({ genes, runState, progress, incubation }: { genes: Genes
       <div className="fallback-beacon"><i /><b /><em /></div>
       <div
         className={`fallback-creature ${runState}`}
-        style={{ left: `${creatureLeft}%`, transform: `translate(-50%, -50%) scale(${creatureScale})` }}
+        style={{ left: `${creatureLeft}%`, transform: `translate(-50%, -50%) scale(${creatureScale})`, "--gait-duration": `${1 / Math.max(0.2, genes.rhythm)}s`, "--body-squash": `${0.82 + genes.segments * 0.07}`, "--run-intensity": Math.max(0.2, simulation.velocity / Math.max(0.1, metricsFor(genes).speed)) } as React.CSSProperties}
       >
         {Array.from({ length: genes.limbs }, (_, limb) => (
           <div
             className="fallback-limb"
             key={limb}
-            style={{ "--limb-angle": `${(limb / genes.limbs) * 360}deg`, "--limb-length": `${36 + genes.segments * 12}px` } as React.CSSProperties}
+            style={{ "--limb-angle": `${(limb / genes.limbs) * 360}deg`, "--limb-length": `${48 + genes.segments * 17}px`, "--limb-delay": `${-(limb / genes.limbs) / Math.max(0.2, genes.rhythm)}s` } as React.CSSProperties}
           >
             {Array.from({ length: genes.segments }, (_, segment) => <i key={segment} />)}
           </div>
@@ -450,11 +558,14 @@ export default function Home() {
   const [genes, setGenes] = useState<Genes>(INITIAL_GENES);
   const [runState, setRunState] = useState<RunState>("design");
   const [incubation, setIncubation] = useState(100);
-  const [progress, setProgress] = useState(0);
+  const [simulation, setSimulation] = useState<Simulation>(INITIAL_SIMULATION);
+  const [failureReason, setFailureReason] = useState<FailureReason>(null);
   const [muted, setMuted] = useState(false);
   const [discovery, setDiscovery] = useState(false);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
+  const terminalRef = useRef(false);
   const metrics = useMemo(() => metricsFor(genes), [genes]);
+  const progress = clamp(simulation.distance / COURSE_DISTANCE * 100);
   const controlsLocked = ["incubating", "testing", "paused"].includes(runState);
 
   useEffect(() => {
@@ -473,7 +584,8 @@ export default function Home() {
   const updateGene = <K extends keyof Genes>(key: K, value: Genes[K]) => {
     setGenes((current) => ({ ...current, [key]: value }));
     setRunState("design");
-    setProgress(0);
+    setSimulation({ ...INITIAL_SIMULATION, dynamicStability: metricsFor({ ...genes, [key]: value }).stability });
+    setFailureReason(null);
     setDiscovery(false);
     playTone("click", muted);
   };
@@ -495,33 +607,54 @@ export default function Home() {
 
   useEffect(() => {
     if (runState !== "testing") return;
-    const scoreSpeed = 0.72 + metrics.mobility / 110;
+    const stepSeconds = 0.05;
     const timer = window.setInterval(() => {
-      setProgress((current) => {
-        const next = current + scoreSpeed;
-        const willFail = metrics.stability < 37 || metrics.energy < 24;
-        if (willFail && next >= 62) {
-          window.clearInterval(timer);
-          window.setTimeout(() => setRunState("failed"), 0);
-          return 62;
-        }
-        if (next >= 100) {
-          window.clearInterval(timer);
+      if (terminalRef.current) return;
+      setSimulation((current) => {
+        const nextElapsed = current.elapsed + stepSeconds;
+        const nextEnergy = Math.max(0, current.energy - metrics.energyDrain * stepSeconds);
+        const energyFactor = clamp(nextEnergy / 28, 0.18, 1);
+        const fatigueLoss = Math.max(0, 28 - nextEnergy) * 0.72;
+        const cadenceStress = Math.max(0, genes.rhythm - 1.75) * 10;
+        const supportOscillation = Math.abs(Math.sin(nextElapsed * genes.rhythm * Math.PI * 2)) * Math.max(0, 68 - metrics.stability) * 0.08;
+        const dynamicStability = clamp(metrics.stability - fatigueLoss - cadenceStress - supportOscillation);
+        const tractionPulse = 0.94 + Math.sin(nextElapsed * genes.rhythm * Math.PI * 2) * 0.06;
+        const nextVelocity = Math.max(0.02, metrics.speed * energyFactor * tractionPulse);
+        const nextDistance = current.distance + nextVelocity * stepSeconds;
+        let reason: FailureReason = null;
+
+        if (dynamicStability < 38 && nextElapsed > 1.8) reason = "tipped";
+        else if (nextEnergy <= 0) reason = "exhausted";
+        else if (nextElapsed >= 18) reason = nextVelocity < 0.22 ? "stalled" : "timeout";
+
+        if (nextDistance >= COURSE_DISTANCE) {
+          terminalRef.current = true;
           window.setTimeout(() => {
             setRunState("success");
             setDiscovery(true);
             playTone("success", muted);
           }, 0);
-          return 100;
+          return { distance: COURSE_DISTANCE, velocity: nextVelocity, energy: nextEnergy, elapsed: nextElapsed, dynamicStability };
         }
-        return next;
+
+        if (reason) {
+          terminalRef.current = true;
+          window.setTimeout(() => {
+            setFailureReason(reason);
+            setRunState("failed");
+          }, 0);
+        }
+
+        return { distance: nextDistance, velocity: reason ? 0 : nextVelocity, energy: nextEnergy, elapsed: nextElapsed, dynamicStability };
       });
-    }, 60);
+    }, stepSeconds * 1000);
     return () => window.clearInterval(timer);
-  }, [runState, metrics.mobility, metrics.stability, metrics.energy, muted]);
+  }, [runState, metrics.speed, metrics.stability, metrics.energyDrain, genes.rhythm, muted]);
 
   const incubate = () => {
-    setProgress(0);
+    terminalRef.current = false;
+    setSimulation({ ...INITIAL_SIMULATION, dynamicStability: metrics.stability });
+    setFailureReason(null);
     setDiscovery(false);
     setIncubation(0);
     setRunState("incubating");
@@ -533,15 +666,19 @@ export default function Home() {
       setRunState("testing");
       return;
     }
-    setProgress(0);
+    terminalRef.current = false;
+    setSimulation({ ...INITIAL_SIMULATION, dynamicStability: metrics.stability });
+    setFailureReason(null);
     setDiscovery(false);
     setRunState("testing");
     playTone("launch", muted);
   };
 
   const reset = () => {
+    terminalRef.current = false;
     setRunState("ready");
-    setProgress(0);
+    setSimulation({ ...INITIAL_SIMULATION, dynamicStability: metrics.stability });
+    setFailureReason(null);
     setDiscovery(false);
   };
 
@@ -566,11 +703,11 @@ export default function Home() {
         {webglSupported ? (
           <Canvas shadows dpr={[1, 1.65]} camera={{ position: [8.7, 5.8, 10.8], fov: 39 }} gl={{ antialias: true, powerPreference: "high-performance" }}>
             <Suspense fallback={null}>
-              <Scene genes={genes} runState={runState} progress={progress} incubation={incubation} />
+              <Scene genes={genes} runState={runState} progress={progress} incubation={incubation} simulation={simulation} failureReason={failureReason} />
             </Suspense>
           </Canvas>
         ) : (
-          <FallbackScene genes={genes} runState={runState} progress={progress} incubation={incubation} />
+          <FallbackScene genes={genes} runState={runState} progress={progress} incubation={incubation} simulation={simulation} />
         )}
         <div className="viewport-label viewport-left"><ScanLine size={14} /> CÂMARA A-01</div>
         <div className="viewport-label viewport-right">ARRASTE PARA ORBITAR · SCROLL PARA ZOOM</div>
@@ -580,7 +717,7 @@ export default function Home() {
           {runState === "testing" && <><span>TESTE EM CURSO</span><strong>{Math.round(progress)}%</strong></>}
           {runState === "paused" && <><span>SIMULAÇÃO PAUSADA</span><strong>{Math.round(progress)}%</strong></>}
           {runState === "success" && <><span>CONTATO ESTABELECIDO</span><strong>ÊXITO</strong></>}
-          {runState === "failed" && <><span>INSTABILIDADE CRÍTICA</span><strong>FALHA</strong></>}
+          {runState === "failed" && <><span>{failureLabel(failureReason)}</span><strong>FALHA</strong></>}
         </div>
       </section>
 
@@ -609,17 +746,22 @@ export default function Home() {
           <strong className="viability">{metrics.viability}<small>%</small></strong>
         </div>
         <div className="metrics-list">
-          <Metric icon={<Gauge size={13} />} label="Estabilidade" value={metrics.stability} color="#a86cff" />
-          <Metric icon={<Activity size={13} />} label="Mobilidade" value={metrics.mobility} color="#61ddff" />
-          <Metric icon={<Zap size={13} />} label="Reserva neural" value={metrics.energy} color="#d6a7ff" />
+          <Metric icon={<Gauge size={13} />} label="Estabilidade" value={["testing", "paused", "success", "failed"].includes(runState) ? Math.round(simulation.dynamicStability) : metrics.stability} color="#a86cff" />
+          <Metric icon={<Activity size={13} />} label="Potencial motor" value={metrics.mobility} color="#61ddff" />
+          <Metric icon={<Zap size={13} />} label="Energia restante" value={["testing", "paused", "success", "failed"].includes(runState) ? Math.round(simulation.energy) : 100} color="#d6a7ff" />
         </div>
+        <div className="telemetry-strip">
+          <span><small>VELOCIDADE REAL</small><strong>{simulation.velocity.toFixed(2)} <em>m/s</em></strong></span>
+          <span><small>DISTÂNCIA</small><strong>{simulation.distance.toFixed(2)} <em>/ 6,8 m</em></strong></span>
+        </div>
+        <div className="gait-readout"><small>MARCHA GERADA</small><strong>{metrics.gait}</strong></div>
         <div className="challenge-card">
           <span className="challenge-icon"><Lightbulb size={18} /></span>
-          <div><small>OBJETIVO DE TESTE</small><strong>Alcançar a fonte lumínica</strong><p>Distância: 6,8 m · Piso estável</p></div>
+          <div><small>OBJETIVO DE TESTE</small><strong>Alcançar a fonte lumínica</strong><p>Limite: 18 s · Energia finita</p></div>
         </div>
         <div className={`discovery-card ${discovery ? "revealed" : ""}`}>
           <span><Atom size={18} /></span>
-          <div><small>FENÔMENO DESCOBERTO</small><strong>Locomoção radial sincronizada</strong></div>
+          <div><small>FENÔMENO DESCOBERTO</small><strong>{metrics.gait} funcional</strong></div>
         </div>
       </aside>
 
