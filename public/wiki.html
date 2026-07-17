@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixieBuddy — Player Guide & Wiki</title>
+<meta name="description" content="The complete PixieBuddy player guide: care stats, sleep, illness, evolution, rarity & pity, birth cards, recycling, mini-games and all 18 achievements. 100% offline desktop pet.">
+<link rel="icon" type="image/webp" href="assets/icons/tray.webp">
+<style>
+/* ============ FONT ============ */
+@font-face {
+  font-family: 'Pixelify Sans';
+  src: url('assets/font/Jersey25-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-0: #06070f;
+  --bg-1: #0b0d1c;
+  --panel: rgba(20, 24, 48, 0.55);
+  --panel-solid: #141830;
+  --border: rgba(168, 107, 224, 0.22);
+  --border-strong: rgba(168, 107, 224, 0.5);
+  --text: #eef0ff;
+  --text-dim: #a6acd6;
+  --text-faint: #6b7099;
+  --amethyst-hi: #E7CFF7;
+  --amethyst: #A86BE0;
+  --amethyst-lo: #5A2398;
+  --citrine: #F2C24E;
+  --emerald: #3FB877;
+  --lapis: #2E6FCB;
+  --ruby: #E03E5C;
+  --tier-common: #9aa3c0;
+  --tier-uncommon: #6fd98a;
+  --tier-rare: #4aa3ff;
+  --tier-epic: #b06be0;
+  --tier-mythic: #ffb347;
+  --shadow-glow: 0 0 40px rgba(168, 107, 224, 0.35);
+  --radius: 16px;
+  --sidebar-w: 264px;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Pixelify Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-0);
+  color: var(--text);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.cosmos {
+  position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(90, 35, 152, 0.26), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 90% 10%, rgba(46, 111, 203, 0.18), transparent 55%),
+    radial-gradient(ellipse 90% 50% at 50% 100%, rgba(168, 107, 224, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 45%, var(--bg-0) 100%);
+}
+.stars {
+  position: fixed; inset: 0; z-index: -1; opacity: 0.55;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 220px 160px, rgba(231,207,247,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 560px 90px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 680px 280px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 340px 50px, rgba(142,199,238,0.5), transparent);
+  background-size: 800px 320px; background-repeat: repeat;
+}
+
+/* ============ TOP BAR ============ */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  background: rgba(6, 7, 15, 0.72);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-inner {
+  max-width: 1240px; margin: 0 auto; padding: 0 20px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.brand img { width: 30px; height: 30px; image-rendering: pixelated; filter: drop-shadow(0 0 6px rgba(168,107,224,0.6)); }
+.brand b {
+  font-family: 'Pixelify Sans', monospace; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;
+  background: linear-gradient(90deg, var(--amethyst-hi), var(--lapis)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.brand .tag {
+  font-family: 'Pixelify Sans', monospace; font-size: 12px; color: var(--amethyst);
+  border: 1px solid var(--border-strong); border-radius: 999px; padding: 2px 10px; margin-left: 4px;
+}
+.back-link {
+  font-family: 'Pixelify Sans', monospace; font-size: 14px; font-weight: 700;
+  text-decoration: none; color: var(--text);
+  background: linear-gradient(135deg, var(--amethyst), var(--lapis));
+  padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: var(--shadow-glow); transition: transform 0.15s;
+}
+.back-link:hover { transform: translateY(-2px); }
+
+/* ============ MOBILE SIDEBAR TOGGLE ============ */
+.menu-toggle {
+  display: none; font-family: 'Pixelify Sans', monospace; font-size: 14px; font-weight: 700;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border-strong);
+  padding: 8px 14px; border-radius: 10px; cursor: pointer;
+}
+
+/* ============ LAYOUT ============ */
+.layout { max-width: 1240px; margin: 0 auto; padding: 0 20px; display: flex; gap: 34px; align-items: flex-start; }
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  position: sticky; top: 60px; align-self: flex-start;
+  height: calc(100vh - 60px); overflow-y: auto;
+  padding: 28px 8px 40px 0;
+}
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(168,107,224,0.3); border-radius: 8px; }
+.side-group { margin-bottom: 22px; }
+.side-group h4 {
+  font-family: 'Pixelify Sans', monospace; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--amethyst); margin-bottom: 8px; padding-left: 12px;
+}
+.sidebar a {
+  display: block; text-decoration: none; color: var(--text-dim);
+  font-size: 14px; padding: 7px 12px; border-radius: 8px;
+  border-left: 2px solid transparent; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sidebar a:hover { color: var(--text); background: rgba(168,107,224,0.10); }
+.sidebar a.active { color: var(--amethyst-hi); background: rgba(168,107,224,0.14); border-left-color: var(--amethyst); font-weight: 600; }
+
+/* ============ MAIN ============ */
+main { flex: 1; min-width: 0; padding: 34px 0 100px; max-width: 860px; }
+.hero-head { margin-bottom: 40px; }
+.hero-head .kicker {
+  font-family: 'Pixelify Sans', monospace; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--amethyst); margin-bottom: 10px;
+}
+.hero-head h1 {
+  font-family: 'Pixelify Sans', monospace; font-size: clamp(30px, 5vw, 46px); font-weight: 700; line-height: 1.1; letter-spacing: 0.5px; margin-bottom: 14px;
+  background: linear-gradient(180deg, #fff 40%, var(--amethyst-hi) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-head p { color: var(--text-dim); font-size: 17px; max-width: 640px; }
+
+section.doc { scroll-margin-top: 78px; margin-bottom: 46px; }
+section.doc > h2 {
+  font-family: 'Pixelify Sans', monospace; font-size: 27px; font-weight: 700; letter-spacing: 0.4px;
+  margin-bottom: 6px; display: flex; align-items: center; gap: 12px;
+}
+section.doc > h2 .ic {
+  width: 34px; height: 34px; image-rendering: pixelated; padding: 5px;
+  background: rgba(168,107,224,0.12); border: 1px solid var(--border); border-radius: 9px; flex-shrink: 0;
+}
+section.doc > .lead { color: var(--text-dim); font-size: 16px; margin-bottom: 20px; }
+section.doc h3 {
+  font-family: 'Pixelify Sans', monospace; font-size: 18px; font-weight: 700; color: var(--amethyst-hi);
+  margin: 26px 0 10px;
+}
+section.doc p { color: var(--text-dim); margin-bottom: 14px; }
+section.doc p strong, section.doc li strong { color: var(--text); }
+section.doc ul { list-style: none; margin: 0 0 16px; padding: 0; }
+section.doc ul li {
+  color: var(--text-dim); position: relative; padding-left: 22px; margin-bottom: 9px;
+}
+section.doc ul li::before { content: '◆'; position: absolute; left: 0; top: 0; color: var(--amethyst); font-size: 11px; }
+code {
+  font-family: 'Consolas', monospace; font-size: 0.9em;
+  background: rgba(168,107,224,0.14); border: 1px solid var(--border);
+  padding: 1px 7px; border-radius: 6px; color: var(--amethyst-hi);
+}
+
+/* Panels / callouts */
+.panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px 24px; margin: 18px 0; backdrop-filter: blur(8px);
+}
+.callout {
+  border-left: 3px solid var(--amethyst); background: rgba(168,107,224,0.08);
+  border-radius: 0 12px 12px 0; padding: 14px 18px; margin: 18px 0; color: var(--text-dim); font-size: 15px;
+}
+.callout b { color: var(--amethyst-hi); }
+.callout.tip { border-left-color: var(--emerald); background: rgba(63,184,119,0.08); }
+.callout.tip b { color: #bff3d0; }
+.callout.warn { border-left-color: var(--citrine); background: rgba(242,194,78,0.08); }
+.callout.warn b { color: #fce9a8; }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--border); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 480px; }
+thead th {
+  font-family: 'Pixelify Sans', monospace; text-align: left; color: var(--amethyst-hi);
+  background: rgba(168,107,224,0.10); padding: 11px 14px; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-strong);
+}
+tbody td { padding: 10px 14px; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.05); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(168,107,224,0.05); }
+td strong { color: var(--text); }
+
+/* Tier chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; font-family: 'Pixelify Sans', monospace;
+  font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid;
+}
+.chip.common { color: var(--tier-common); border-color: var(--tier-common); background: rgba(154,163,192,0.1); }
+.chip.uncommon { color: var(--tier-uncommon); border-color: var(--tier-uncommon); background: rgba(111,217,138,0.1); }
+.chip.rare { color: var(--tier-rare); border-color: var(--tier-rare); background: rgba(74,163,255,0.1); }
+.chip.epic { color: var(--tier-epic); border-color: var(--tier-epic); background: rgba(176,107,224,0.1); }
+.chip.mythic { color: var(--tier-mythic); border-color: var(--tier-mythic); background: rgba(255,179,71,0.1); }
+
+/* Stat cards grid */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 18px 0; }
+.mini {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+}
+.mini h5 { font-family: 'Pixelify Sans', monospace; font-size: 15px; color: var(--text); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.mini p { font-size: 13.5px; color: var(--text-dim); margin: 0; }
+.mini .emoji { font-size: 18px; }
+
+/* Controls list */
+.ctrl-row { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.ctrl-row:last-child { border-bottom: none; }
+.ctrl-row .key {
+  font-size: 20px; width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(168,107,224,0.12); border: 1px solid var(--border); border-radius: 9px;
+}
+.ctrl-row .txt { font-size: 14px; color: var(--text-dim); }
+.ctrl-row .txt b { color: var(--text); font-family: 'Pixelify Sans', monospace; }
+
+footer {
+  border-top: 1px solid var(--border); padding: 30px 0; margin-top: 30px;
+  text-align: center; color: var(--text-faint); font-size: 13px;
+}
+footer a { color: var(--amethyst); text-decoration: none; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .menu-toggle { display: inline-block; }
+  .layout { display: block; padding: 0 16px; }
+  .sidebar {
+    width: 100%; position: static; height: auto; overflow: visible;
+    padding: 0; margin: 12px 0 8px; display: none;
+  }
+  .sidebar.open { display: block; }
+  main { max-width: 100%; padding-top: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="cosmos"></div>
+<div class="stars"></div>
+
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <a href="index.html" class="brand">
+      <img src="assets/icons/tray.webp" alt="PixieBuddy">
+      <b>PixieBuddy</b><span class="tag">Guide</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="menu-toggle" id="menuToggle">☰ Menu</button>
+      <a href="index.html" class="back-link">← Back to site</a>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-group">
+      <h4>Start here</h4>
+      <a href="#intro">What is PixieBuddy</a>
+      <a href="#start">Getting started</a>
+      <a href="#controls">Menu &amp; controls</a>
+    </div>
+    <div class="side-group">
+      <h4>Daily care</h4>
+      <a href="#stats">Care stats</a>
+      <a href="#sleep">Sleep &amp; day/night</a>
+      <a href="#illness">Illness &amp; cure</a>
+      <a href="#temperament">Temperament</a>
+      <a href="#bond">Bonding</a>
+    </div>
+    <div class="side-group">
+      <h4>Growth &amp; collection</h4>
+      <a href="#evolution">Evolution</a>
+      <a href="#rarity">Rarity &amp; pity</a>
+      <a href="#birthcard">Birth card</a>
+      <a href="#recycle">Recycling &amp; shelf</a>
+    </div>
+    <div class="side-group">
+      <h4>Play</h4>
+      <a href="#minigames">Mini-games</a>
+      <a href="#pomodoro">Pomodoro timer</a>
+      <a href="#achievements">Achievements</a>
+    </div>
+    <div class="side-group">
+      <h4>Good to know</h4>
+      <a href="#multibuddy">Multi-buddy</a>
+      <a href="#languages">Languages &amp; audio</a>
+      <a href="#privacy">Privacy &amp; offline</a>
+      <a href="#tips">Tips &amp; FAQ</a>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <div class="hero-head">
+      <div class="kicker">◆ Player Guide</div>
+      <h1>Everything you need to raise your Core</h1>
+      <p>A complete, spoiler-friendly guide to PixieBuddy — how care works, how your Core grows and evolves, how rarity and pity work, and how to win every mini-game. No prior knowledge needed.</p>
+    </div>
+
+    <!-- INTRO -->
+    <section class="doc" id="intro">
+      <h2><img src="assets/icons/tray.webp" class="ic" alt=""> What is PixieBuddy</h2>
+      <p class="lead">PixieBuddy is a classic virtual desktop pet. A little crystal <strong>Core</strong> is born, lives on your desktop as a transparent always-on-top window, grows into its adult form, and stays by your side forever.</p>
+      <p>You interact entirely through a clickable radial menu — there is <strong>no chat and no AI</strong>. Everything runs offline on your machine. The whole experience is built around gentle, classic care: your pet reacts to attention, grows, plays, collects cards, and never punishes you for stepping away.</p>
+      <div class="grid2">
+        <div class="mini"><h5><span class="emoji">🪐</span> Lives on your desktop</h5><p>A draggable, always-on-top overlay that wanders a little around where you place it.</p></div>
+        <div class="mini"><h5><span class="emoji">💗</span> Care without punishment</h5><p>No death, no aging, no grave. Neglect can make it sick, but care always heals.</p></div>
+        <div class="mini"><h5><span class="emoji">💎</span> Unique by seed</h5><p>Every Core has its own rarity, gem, cosmic origin and personality.</p></div>
+        <div class="mini"><h5><span class="emoji">🔌</span> 100% offline</h5><p>No network, no login, no telemetry. Your pet is yours alone.</p></div>
+      </div>
+    </section>
+
+    <!-- GETTING STARTED -->
+    <section class="doc" id="start">
+      <h2><img src="assets/pets/ev0.webp" class="ic" alt=""> Getting started</h2>
+      <p class="lead">Your very first Core makes the full journey from a raw technological core to a permanent adult. It only happens once — after that, new Cores are born as babies again, and the account-wide <strong>stage selector</strong> lets you jump straight to any stage you like.</p>
+      <h3>The first launch</h3>
+      <ul>
+        <li>A brand-new <strong>Core (EV0)</strong> is fabricated in about <strong>30 seconds</strong>.</li>
+        <li>When it hatches into a baby, the app asks you to <strong>give it a name</strong>. That unlocks the <em>First Name</em> achievement.</li>
+        <li>From there it grows through four stages over a few days into its permanent adult form. See <a href="#evolution" style="color:var(--amethyst)">Evolution</a> for the timing.</li>
+      </ul>
+      <div class="callout tip"><b>Tip:</b> You don't have to babysit growth. Stages advance on their own over real time — just check in, feed, play and keep the bars healthy.</div>
+      <h3>The core loop</h3>
+      <p>Once you understand it, every day looks like this: keep the four care bars comfortable, let your pet sleep at night, play a mini-game or two, give some affection, and — once you reach adulthood — recycle Cores to discover new rarities and fill your collection.</p>
+    </section>
+
+    <!-- CONTROLS -->
+    <section class="doc" id="controls">
+      <h2><img src="assets/icons/cards.png" class="ic" alt=""> Menu &amp; controls</h2>
+      <p class="lead">Everything is done from the <strong>radial bubble menu</strong> (click your pet) and the <strong>system tray</strong> icon. Icons are pixel-art; the settings gear is always last.</p>
+      <h3>Radial menu</h3>
+      <div class="panel">
+        <div class="ctrl-row"><span class="key">🔋</span><span class="txt"><b>Feed</b> — restores hunger and installs a temperament module (see below).</span></div>
+        <div class="ctrl-row"><span class="key">🛁</span><span class="txt"><b>Bath</b> — restores cleanliness and nudges health up.</span></div>
+        <div class="ctrl-row"><span class="key">🎮</span><span class="txt"><b>Play</b> — opens the three mini-games: ⭕ Tic-Tac-Toe, 📡 Scanner Mode, 💧 Pixel Beats.</span></div>
+        <div class="ctrl-row"><span class="key">💕</span><span class="txt"><b>Pet / affection</b> — raises happiness and your bond.</span></div>
+        <div class="ctrl-row"><span class="key">💉</span><span class="txt"><b>Medicine</b> — appears <em>only when your pet is sick</em>; instantly cures it.</span></div>
+        <div class="ctrl-row"><span class="key">⏲️</span><span class="txt"><b>Pomodoro</b> — a built-in focus timer with a floating glass clock. See <a href="#pomodoro" style="color:var(--amethyst)">Pomodoro timer</a>.</span></div>
+        <div class="ctrl-row"><span class="key">🧬</span><span class="txt"><b>Stage selector</b> — appears once any buddy on the account has reached EV4; freely switch between EV1–EV4.</span></div>
+        <div class="ctrl-row"><span class="key">➕</span><span class="txt"><b>New buddy</b> — opens another buddy (up to 5 at once). See <a href="#multibuddy" style="color:var(--amethyst)">Multi-buddy</a>.</span></div>
+        <div class="ctrl-row"><span class="key">💡</span><span class="txt"><b>Light</b> — turn the light off/on to put your pet to sleep or wake it any time.</span></div>
+        <div class="ctrl-row"><span class="key">💎</span><span class="txt"><b>Core panel</b> — shows the birth card: rarity, origin, material, size and personality.</span></div>
+        <div class="ctrl-row"><span class="key">🏆</span><span class="txt"><b>Achievements</b> — the 18-trophy shelf, shared account-wide.</span></div>
+        <div class="ctrl-row"><span class="key">🗂️</span><span class="txt"><b>Collection / shelf</b> — your archived Cores as collectible cards.</span></div>
+        <div class="ctrl-row"><span class="key">♻️</span><span class="txt"><b>Recycle</b> — archive the current Core and roll a new one (24h cooldown).</span></div>
+        <div class="ctrl-row"><span class="key">⚙️</span><span class="txt"><b>Settings</b> — language, sound and options. Always the last bubble.</span></div>
+      </div>
+      <h3>System tray</h3>
+      <p>A single tray icon serves all your buddies. Left-click it to <strong>hide/show everyone</strong> at once; right-click for a menu that lists <strong>every buddy you've created</strong> (inactive ones dimmed), lets you activate any of them individually, offers <strong>Reopen all</strong>, toggles the <strong>light</strong>, and quits. The tooltip shows name, stage and current mood.</p>
+      <div class="callout"><b>Note:</b> Clicking anywhere outside a floating window closes it. While your pet sleeps, feeding, bathing and playing are unavailable until it wakes.</div>
+    </section>
+
+    <!-- CARE STATS -->
+    <section class="doc" id="stats">
+      <h2><img src="assets/icons/battery.png" class="ic" alt=""> Care stats</h2>
+      <p class="lead">Your pet has four everyday bars — <strong>hunger, happiness, energy and cleanliness</strong> — plus <strong>health</strong>, which sits behind them. The four bars slowly drain over time; your actions top them back up.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Stat</th><th>Starts at</th><th>Behaviour</th><th>How to restore</th></tr></thead>
+          <tbody>
+            <tr><td><strong>🔋 Hunger</strong></td><td>85</td><td>Drains steadily while awake; takes a single hunger hit each morning on waking.</td><td>Feed (🔋)</td></tr>
+            <tr><td><strong>😊 Happiness</strong></td><td>80</td><td>Drains slowly while awake.</td><td>Pet (💕) &amp; play (🎮)</td></tr>
+            <tr><td><strong>⚡ Energy</strong></td><td>80</td><td>Empties over ~16h awake; refills over ~8h of sleep.</td><td>Sleep</td></tr>
+            <tr><td><strong>🧼 Cleanliness</strong></td><td>85</td><td>Drains slowly while awake.</td><td>Bath (🛁)</td></tr>
+            <tr><td><strong>❤️ Health</strong></td><td>100</td><td>Only changes while awake. Frozen during sleep.</td><td>See below</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>How health works</h3>
+      <p>Health is the safety net. It reacts to the state of the four bars:</p>
+      <ul>
+        <li>If <strong>any</strong> bar falls very low, health starts to slip. If two or more bars are low, it slips slowly. The more critical bars there are, the faster it drops.</li>
+        <li>When all four bars are comfortable, health slowly <strong>recovers on its own</strong>.</li>
+        <li>If health falls to about <strong>35 or below</strong>, your pet becomes <strong>sick</strong>. It recovers from sickness once health climbs back up and the bars are healthy again.</li>
+      </ul>
+      <div class="callout tip"><b>Tip:</b> You never need to keep the bars at 100. Keep them roughly comfortable and health takes care of itself. One good round of feeding, a bath and some play resets almost everything.</div>
+      <div class="callout"><b>Reactions:</b> Care actions exist to create reactions and build your bond — not to grade you. Petting, bathing and playing all also nudge health up a little and raise your bond.</div>
+    </section>
+
+    <!-- SLEEP -->
+    <section class="doc" id="sleep">
+      <h2><img src="assets/icons/moon.png" class="ic" alt=""> Sleep &amp; day/night</h2>
+      <p class="lead">Sleep is <strong>dual</strong>: it happens automatically on a schedule, and you can also control it manually with the light at any time.</p>
+      <h3>Automatic schedule</h3>
+      <ul>
+        <li>Your pet falls asleep on its own at night, around <strong>10&nbsp;PM (22:00)</strong>.</li>
+        <li>It wakes up by itself in the morning, around <strong>8&nbsp;AM (08:00)</strong>.</li>
+        <li>While asleep it shows <strong>Zzz</strong>, doesn't open speech bubbles, and refills energy. No bars drain and health is frozen.</li>
+        <li>On waking it takes a single <strong>morning hunger hit</strong>, so it's usually hungry first thing.</li>
+      </ul>
+      <h3>Manual light</h3>
+      <p>Use the <strong>light toggle</strong> (💡 in the menu or the tray) to send your pet to sleep or wake it whenever you like — the manual choice overrides the schedule for that period.</p>
+      <div class="callout warn"><b>Exhaustion:</b> If energy hits zero, your pet will sleep no matter what — even with the light on — until it has rested enough to recover.</div>
+    </section>
+
+    <!-- ILLNESS -->
+    <section class="doc" id="illness">
+      <h2><img src="assets/icons/flask.png" class="ic" alt=""> Illness &amp; cure</h2>
+      <p class="lead">Sickness is a recoverable state, never a punishment. If health drops too far (around 35 or below), your pet gets sick and shows a <strong>fever thermometer</strong>.</p>
+      <h3>Two ways to heal</h3>
+      <ul>
+        <li><strong>Normal care:</strong> get the bars back up and keep them comfortable — health rises and the sickness clears on its own.</li>
+        <li><strong>Medicine (💉):</strong> the syringe button appears in the menu <em>only while your pet is sick</em>. One dose restores a big chunk of health and clears the sickness instantly.</li>
+      </ul>
+      <p>The moment your pet is cured, the thermometer and sick state vanish immediately — you don't wait for the next tick. After a dose there's a short immunity window, so extra doses right away are simply ignored.</p>
+      <div class="callout tip"><b>Tip:</b> There is no virus, no contagion and no lasting damage. Sickness is just the game telling you the bars have been low for too long.</div>
+    </section>
+
+    <!-- TEMPERAMENT -->
+    <section class="doc" id="temperament">
+      <h2><img src="assets/icons/palette.png" class="ic" alt=""> Temperament (feeding)</h2>
+      <p class="lead">Feeding does two things: it restores hunger <em>and</em> temporarily installs a <strong>temperament module</strong> that changes only how your pet moves and idles for a few hours.</p>
+      <div class="grid2">
+        <div class="mini"><h5><span class="emoji">⚡</span> Active</h5><p>Wanders around more.</p></div>
+        <div class="mini"><h5><span class="emoji">⚙️</span> Balanced</h5><p>The default pacing.</p></div>
+        <div class="mini"><h5><span class="emoji">🌙</span> Lazy</h5><p>Stays put more, moves less.</p></div>
+      </div>
+      <p>The module lasts about <strong>4 hours</strong> and then expires on its own back to Balanced. It affects <strong>only</strong> movement — it never punishes hunger or energy, and it doesn't change your Core's fixed personality, evolution, gem or family.</p>
+    </section>
+
+    <!-- BONDING -->
+    <section class="doc" id="bond">
+      <h2><img src="assets/icons/heart.png" class="ic" alt=""> Bonding</h2>
+      <p class="lead">Your <strong>bond</strong> is the relationship you build with your pet over time. It only ever goes up.</p>
+      <ul>
+        <li>It rises through <strong>affection, baths, play</strong> and other positive interactions.</li>
+        <li>It <strong>never decays</strong> from being away — step away for as long as you like.</li>
+        <li>It feeds achievements and affectionate moments. Reaching <strong>90 bond points</strong> unlocks <em>Best Company</em>.</li>
+      </ul>
+      <p>Open the <strong>Core panel (💎)</strong> to see your bond in points alongside your Core's fixed personality traits.</p>
+    </section>
+
+    <!-- EVOLUTION -->
+    <section class="doc" id="evolution">
+      <h2><img src="assets/pets/ev4.webp" class="ic" alt=""> Evolution</h2>
+      <p class="lead">A Core grows through five stages — from a raw core to a permanent adult. Growth is driven by <strong>real time</strong>, not by feeding.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Stage</th><th>Name</th><th>Duration</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><strong>EV0</strong></td><td>Core</td><td>~30 seconds</td><td>Fabrication. Hatches and asks you to name it.</td></tr>
+            <tr><td><strong>EV1</strong></td><td>Baby</td><td>24 hours</td><td>First living form.</td></tr>
+            <tr><td><strong>EV2</strong></td><td>Child</td><td>24 hours</td><td>Unlocks <em>Growing Up</em>.</td></tr>
+            <tr><td><strong>EV3</strong></td><td>Teen</td><td>24 hours</td><td>Last stage before adulthood.</td></tr>
+            <tr><td><strong>EV4</strong></td><td>Adult</td><td>Permanent</td><td>Final form. Unlocks <em>Adult Form</em>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Each stage change plays a short <strong>upgrade ("solder") animation</strong> during which your pet briefly sleeps, then wakes in its new form. Stages advance automatically once enough time has passed.</p>
+      <h3>First journey vs. later Cores</h3>
+      <ul>
+        <li>Your <strong>very first Core</strong> makes the full EV0 → EV4 journey once.</li>
+        <li>After that first journey is complete, every Core you <strong>recycle</strong> is born as a <strong>baby (EV1)</strong> again — but you don't have to wait: the stage selector below lets you jump straight to any stage.</li>
+      </ul>
+      <h3>The stage selector (🧬)</h3>
+      <ul>
+        <li>The moment <strong>any buddy on your account</strong> reaches EV4 for the first time, the 🧬 button unlocks <strong>account-wide, forever</strong>.</li>
+        <li>Use it to move <strong>freely back and forth between EV1–EV4</strong> — pick the form you love and keep it.</li>
+        <li>While a stage is hand-picked, <strong>natural evolution pauses</strong> at that stage; choose another stage any time. Seed, rarity, name and personality never change.</li>
+      </ul>
+      <div class="callout"><b>No death, ever:</b> There is no aging past adulthood, no terminal illness and no grave. Adulthood is permanent; a fresh start only happens when <em>you</em> choose to recycle.</div>
+    </section>
+
+    <!-- RARITY -->
+    <section class="doc" id="rarity">
+      <h2><img src="assets/icons/gem.png" class="ic" alt=""> Rarity &amp; pity</h2>
+      <p class="lead">Every Core is generated from a unique <strong>seed</strong> that produces a rarity score from 0–100. That score maps to one of five tiers, each with its own gem and colour.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Tier</th><th>Gem</th><th>Base chance</th><th>Score range</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip common">Common</span></td><td>Citrine</td><td>55%</td><td>0–19</td></tr>
+            <tr><td><span class="chip uncommon">Uncommon</span></td><td>Emerald</td><td>25%</td><td>20–39</td></tr>
+            <tr><td><span class="chip rare">Rare</span></td><td>Lapis Lazuli</td><td>12%</td><td>40–59</td></tr>
+            <tr><td><span class="chip epic">Epic</span></td><td>Amethyst</td><td>6%</td><td>60–79</td></tr>
+            <tr><td><span class="chip mythic">Mythic</span></td><td>Ruby</td><td>2%</td><td>80–100</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>The Mythic pity system (account-wide)</h3>
+      <p>You're never unlucky forever. Pity belongs to your whole <strong>account</strong>: every time you <strong>recycle or create a new buddy</strong> in any slot without landing a Mythic, the shared counter goes up (up to a maximum of <strong>225</strong>). As pity climbs:</p>
+      <ul>
+        <li><strong>Common and Uncommon fade out</strong> — their chances shrink toward zero as you pass roughly two-thirds of the bar.</li>
+        <li><strong>Rare, Epic and Mythic converge</strong> toward roughly equal chances (about a third each) at the top.</li>
+        <li>Landing a Mythic on <strong>any buddy</strong> resets the account's pity to zero.</li>
+      </ul>
+      <p>Because the top three even out, a Mythic is <strong>never guaranteed</strong> — pity just stops the game from being cruel. Each slot's recycle has a 24-hour cooldown, so with all 5 buddies you can earn up to ~5 pity points a day (about 45 days to the cap at full pace).</p>
+      <h3>The Mythic Void</h3>
+      <p>A perfect <strong>100/100</strong> roll doesn't mint an ordinary Ruby: it reveals the <strong>Mythic Void</strong> — the only buddy in the game with <strong>gradient sprites</strong>, and its own achievement. The rarest sight there is.</p>
+      <div class="callout tip"><b>Tip:</b> Rarity is cosmetic and collectible, not power. A Common Core is exactly as loveable as a Mythic — the tiers are about discovery and colour, not stats.</div>
+    </section>
+
+    <!-- BIRTH CARD -->
+    <section class="doc" id="birthcard">
+      <h2><img src="assets/pets/amethyst-ev4.webp" class="ic" alt=""> Birth card &amp; signature</h2>
+      <p class="lead">The same seed that sets rarity also mints a fixed <strong>birth card</strong> — a collectible profile that never changes with care. Open it any time from the <strong>Core panel (💎)</strong>.</p>
+      <h3>What's on the card</h3>
+      <ul>
+        <li><strong>Cosmic origin</strong> — a real astronomical place, from the Solar System, Moon and planets up to distant stars and nebulae. Rarer tiers unlock more exclusive origins.</li>
+        <li><strong>Chassis material</strong> — from everyday alloys and polymers up to exotic materials like sapphire crystal, iridium alloy or graphene aerogel.</li>
+        <li><strong>Height &amp; size class</strong> — roughly 21–35 cm, classed as <strong>Small</strong>, <strong>Medium</strong> or <strong>Large</strong>.</li>
+        <li><strong>Mass</strong> — derived from height and material density, so a dense material or a big silhouette makes a heavier Core.</li>
+      </ul>
+      <h3>Personality (fixed traits)</h3>
+      <p>Each Core is born with fixed personality values that <strong>never change with care</strong>:</p>
+      <div class="grid2">
+        <div class="mini"><h5>Affection</h5><p>0–100</p></div>
+        <div class="mini"><h5>Curiosity</h5><p>0–100</p></div>
+        <div class="mini"><h5>Sensitivity</h5><p>0–100</p></div>
+        <div class="mini"><h5>Calm ↔ Mischief</h5><p>−100 to +100 axis</p></div>
+      </div>
+      <div class="callout"><b>Collectible, not competitive:</b> These stats don't make one Core "better." An Uncommon can be born large, heavy, or with a fascinating material — every Core is a unique specimen worth keeping.</div>
+    </section>
+
+    <!-- RECYCLE -->
+    <section class="doc" id="recycle">
+      <h2><img src="assets/icons/recycle.png" class="ic" alt=""> Recycling &amp; the shelf</h2>
+      <p class="lead">Recycling is how you start fresh and grow your collection — and you never lose anything by doing it.</p>
+      <h3>How recycling works</h3>
+      <ul>
+        <li>The <strong>Recycle (♻️)</strong> button asks for confirmation and has a <strong>24-hour cooldown</strong> (so Mythic re-rolls can't be spammed).</li>
+        <li>Recycling <strong>archives</strong> your current Core to the shelf and <strong>mints an immutable card</strong> of it, stamped with its era and version.</li>
+        <li>You can <strong>reactivate</strong> any archived Core later whenever you want.</li>
+        <li>The new Core is born as a <strong>baby (EV1)</strong> with a freshly rolled rarity — and with the <a href="#evolution" style="color:var(--amethyst)">stage selector</a> unlocked you can jump it straight to any stage.</li>
+        <li>During the cooldown the Recycle button is disabled and shows the remaining time on hover.</li>
+      </ul>
+      <h3>The holographic card viewer</h3>
+      <p>Click a card's thumbnail on the shelf to open an interactive viewer: the card <strong>tilts in 3D following your mouse</strong>, with a specular highlight, a rainbow layer and animated sparkles. The effect gets more intense with higher rarity and finish. The collection panel also tracks which rarities you've discovered.</p>
+      <div class="callout tip"><b>Tip:</b> Recycle guilt-free. Your old Core lives on as a permanent card, so chasing a new rarity always <em>adds</em> to your collection.</div>
+    </section>
+
+    <!-- MINI-GAMES -->
+    <section class="doc" id="minigames">
+      <h2><img src="assets/icons/gamepad.png" class="ic" alt=""> Mini-games</h2>
+      <p class="lead">Three mini-games live under the <strong>Play (🎮)</strong> menu. Every match rewards care and counts toward achievements — and none of them punish you for losing.</p>
+
+      <h3><img src="assets/icons/tictactoe.png" style="width:22px;height:22px;vertical-align:-4px;image-rendering:pixelated"> Tic-Tac-Toe <span class="chip epic" style="margin-left:6px">⭕</span></h3>
+      <p>You play X, your pet plays O — now on a <strong>neon cosmos board</strong> with glowing marks, a turn indicator and <strong>Undo / New Game</strong> buttons. Each of the pet's moves is decided <strong>50% by a perfect minimax AI</strong> (never loses) and <strong>50% by an easy heuristic</strong> (win → block → center → corner → random), so it's genuinely unpredictable even if you know the code.</p>
+      <ul>
+        <li><strong>Win</strong> → a <strong>double</strong> care reward (happiness &amp; bond ×2).</li>
+        <li><strong>Draw</strong> → a single reward.</li>
+        <li><strong>Loss</strong> → no penalty to your bond.</li>
+        <li>A rewarded match costs a small ~2 points of energy, once per game.</li>
+      </ul>
+      <div class="callout tip"><b>To win reliably:</b> take the center or a corner first, always block the pet's two-in-a-row, and set up a "fork" (two winning threats at once).</div>
+
+      <h3><img src="assets/icons/radar.png" style="width:22px;height:22px;vertical-align:-4px;image-rendering:pixelated"> Scanner Mode <span class="chip rare" style="margin-left:6px">📡</span></h3>
+      <p>Also called <em>Hide-the-Core</em>. Your pet camouflages and leaves a hidden <strong>ping</strong> somewhere safe on screen. Rounds are quick: you get a random <strong>7–13 second</strong> window, and the signal relocates more often — track it down on the radar before it closes.</p>
+      <ul>
+        <li>Listen for the <strong>sonar bips</strong>: a countdown, a camouflage confirmation, a periodic sonar sweep, and an alert when the signal changes.</li>
+        <li>Click the hidden ping in time to win — this unlocks <em>Signal Found</em>.</li>
+      </ul>
+
+      <h3><img src="assets/icons/drop.png" style="width:22px;height:22px;vertical-align:-4px;image-rendering:pixelated"> Pixel Beats <span class="chip mythic" style="margin-left:6px">💧</span></h3>
+      <p>A 4-lane rhythm game played with <strong>D F J K</strong> (or tap). It has <strong>three genuinely different arrangements</strong>, drawn from a shuffle bag so you see all three before any repeats:</p>
+      <ul>
+        <li><strong>Adventure Melody</strong> — pitched notes with an audible accompaniment.</li>
+        <li><strong>Accessible Drums</strong> — a clear, steady pulse.</li>
+        <li><strong>Crystal Synth</strong> — shimmering arpeggios.</li>
+      </ul>
+      <p>Each mode has its own chart, rhythm and backing track. Every note is a real <strong>hold bar</strong>: press when it reaches the line and <strong>keep holding</strong> — the lane lights up and sparks fly — then release at the end. Releasing early counts as a miss. What matters is <strong>not missing</strong>; hitting late still counts. You get a grade at the end:</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Grade</th><th>Requirement</th><th>Reward</th></tr></thead>
+          <tbody>
+            <tr><td><strong style="color:var(--citrine)">S</strong></td><td>Hit ~99%+ of notes, 90%+ of them perfectly on-beat</td><td>Double</td></tr>
+            <tr><td><strong style="color:var(--tier-uncommon)">A</strong></td><td>Hit ~95%+ of notes</td><td>Double</td></tr>
+            <tr><td><strong style="color:var(--tier-rare)">B</strong></td><td>Hit ~75%+</td><td>Single</td></tr>
+            <tr><td><strong>C</strong></td><td>Hit ~50%+</td><td>Single</td></tr>
+            <tr><td><strong style="color:var(--text-faint)">D</strong></td><td>Below 50%</td><td>Single</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Any win unlocks <em>Beat Master</em>. The game is fully polyphonic and has a mute button.</p>
+    </section>
+
+    <!-- POMODORO -->
+    <section class="doc" id="pomodoro">
+      <h2><img src="assets/icons/clock.png" class="ic" alt=""> Pomodoro timer</h2>
+      <p class="lead">PixieBuddy doubles as a focus companion: a built-in <strong>Pomodoro timer</strong> (⏲️ in the menu) runs focus/rest cycles in a floating <strong>Cosmos Glass clock</strong> beside your pet.</p>
+      <ul>
+        <li>Set your own <strong>focus and rest minutes</strong> (default 25/5); cycles repeat until you stop, with a cycle counter.</li>
+        <li>The clock shows a <strong>phase-colored countdown ring</strong> and the remaining time. Click it to stop the session or adjust its <strong>opacity (25–100%)</strong> — preferences are saved.</li>
+        <li>During focus your buddy <strong>sits quietly in place</strong> so it never distracts you; each phase change brings an emoji, a speech bubble and a jingle.</li>
+        <li>Keep the Pomodoro running for <strong>60 accumulated minutes</strong> to unlock the <em>Sixty Minutes</em> achievement.</li>
+      </ul>
+      <div class="callout tip"><b>Tip:</b> The session is per sitting — closing the app ends it, but your preferred durations and opacity are remembered.</div>
+    </section>
+
+    <!-- ACHIEVEMENTS -->
+    <section class="doc" id="achievements">
+      <h2><img src="assets/icons/trophy.png" class="ic" alt=""> Achievements</h2>
+      <p class="lead">There are <strong>18 trophies</strong> on a Steam/Xbox-style shelf (unlocked vs. locked, each with its own Cosmos Glass icon). Achievements belong to your <strong>account</strong>: every buddy shares and contributes to the same shelf. They are pure memory — they never lock any pet rule, they just record your journey.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Trophy</th><th>How to unlock</th></tr></thead>
+          <tbody>
+            <tr><td><strong>🏷️ First Name</strong></td><td>Give your Core a name.</td></tr>
+            <tr><td><strong>🔋 First Food</strong></td><td>Feed your pet once.</td></tr>
+            <tr><td><strong>🛁 Maintenance Bath</strong></td><td>Give it a bath once.</td></tr>
+            <tr><td><strong>💕 Affection Received</strong></td><td>Pet it once.</td></tr>
+            <tr><td><strong>🎮 Play Time</strong></td><td>Play any mini-game once.</td></tr>
+            <tr><td><strong>🤝 Best Company</strong></td><td>Reach 90 bond points.</td></tr>
+            <tr><td><strong>🌱 Growing Up</strong></td><td>Reach EV2.</td></tr>
+            <tr><td><strong>🌟 Adult Form</strong></td><td>Reach the permanent EV4.</td></tr>
+            <tr><td><strong>📅 One Week Together</strong></td><td>Reach 7 days of age.</td></tr>
+            <tr><td><strong>⏲️ Sixty Minutes</strong></td><td>Keep the Pomodoro running for 60 accumulated minutes.</td></tr>
+            <tr><td><strong>⭕ Sharp Mind</strong></td><td>Win a game of Tic-Tac-Toe.</td></tr>
+            <tr><td><strong>💧 Beat Master</strong></td><td>Win Pixel Beats.</td></tr>
+            <tr><td><strong>📡 Signal Found</strong></td><td>Recover the ping in Scanner Mode.</td></tr>
+            <tr><td><strong>👑 Mythic Touch</strong></td><td>Obtain a Mythic Core.</td></tr>
+            <tr><td><strong>🌌 Mythic Void</strong></td><td>Obtain the perfect 100/100 Mythic Void Core.</td></tr>
+            <tr><td><strong>🎖️ Seasoned Player</strong></td><td>Play 25 games.</td></tr>
+            <tr><td><strong>🌙 One Month Together</strong></td><td>Reach 30 days of age.</td></tr>
+            <tr><td><strong>🗂️ Collector</strong></td><td>Archive 5 Cores in your collection.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MULTI-BUDDY -->
+    <section class="doc" id="multibuddy">
+      <h2><img src="assets/icons/plus.png" class="ic" alt=""> Multi-buddy</h2>
+      <p class="lead">You can keep up to <strong>5 buddies</strong> living on your desktop at once — each one a full, independent pet.</p>
+      <ul>
+        <li>Open a new buddy with the <strong>➕ button</strong> in settings. Each has its own identity, seed, rarity, stats and save file.</li>
+        <li><strong>Shared by the account:</strong> achievements, the card shelf and Mythic luck (pity) — every buddy contributes to the same collection.</li>
+        <li>On Windows, all buddy windows group into <strong>one taskbar button</strong> with individual previews and close controls.</li>
+        <li>A single <strong>tray icon</strong> manages everyone: activate any buddy, dim/inactive list, <strong>Reopen all</strong>, and one-click hide/show for the whole group.</li>
+        <li>Quit and relaunch: one buddy returns automatically; the rest wait as inactive entries in the tray, ready to be reopened.</li>
+      </ul>
+      <div class="callout tip"><b>Tip:</b> More buddies also means more pity per day — recycling across 5 slots climbs the account's Mythic luck up to ~5× faster.</div>
+    </section>
+
+    <!-- LANGUAGES -->
+    <section class="doc" id="languages">
+      <h2><img src="assets/icons/globe.png" class="ic" alt=""> Languages &amp; audio</h2>
+      <p class="lead">The whole interface — including achievements and the music modes — is translated into <strong>7 languages</strong>: English, Portuguese, Spanish, French, German, Italian and Russian.</p>
+      <ul>
+        <li>You pick your language on first run and can <strong>switch any time</strong> from the menu.</li>
+        <li>Audio is <strong>royalty-free 8-bit chiptune</strong> generated offline, with a shared melodic identity: short memorable motifs for interactions, a brief farewell at sleep, and progressively fuller jingles for startup, evolution, achievements, Epic and Mythic.</li>
+        <li>Everything plays locally, Pixel Beats is polyphonic, and there's a mute button.</li>
+      </ul>
+    </section>
+
+    <!-- PRIVACY -->
+    <section class="doc" id="privacy">
+      <h2><img src="assets/icons/eye.png" class="ic" alt=""> Privacy &amp; offline</h2>
+      <p class="lead">PixieBuddy is <strong>100% offline</strong>. It uses no AI at runtime, never talks to the internet, and sends data nowhere.</p>
+      <ul>
+        <li>No network, no login, no telemetry.</li>
+        <li>All state lives in a local <code>save.json</code> (with an automatic <code>save.bak.json</code> backup and atomic, corruption-safe writes).</li>
+        <li>No cloud, no model, no third-party sound or sprite at runtime — the pixel-art and chiptune are original to PixieBuddy.</li>
+      </ul>
+      <div class="callout"><b>Your pet is yours alone.</b> Back up or move your save file and you carry your Core and its whole collection with you.</div>
+    </section>
+
+    <!-- TIPS -->
+    <section class="doc" id="tips">
+      <h2><img src="assets/icons/lamp.png" class="ic" alt=""> Tips &amp; quick answers</h2>
+      <div class="panel">
+        <h3 style="margin-top:0">Can my pet die?</h3>
+        <p>No. There's no death, aging or grave. Neglect can make it sick, but care always heals it.</p>
+        <h3>Do I need to play every day?</h3>
+        <p>No. Bars only drain while the app runs, your bond never decays from absence, and health freezes during sleep. Come and go freely.</p>
+        <h3>How do I get a Mythic?</h3>
+        <p>Keep recycling (24h cooldown per slot) or creating new buddies — every non-Mythic roll builds the account's pity and steadily improves your odds, though a Mythic is never guaranteed. And if you ever roll a perfect 100/100, say hello to the Mythic Void.</p>
+        <h3>Can I keep my buddy as a baby?</h3>
+        <p>Yes! Once any buddy has reached EV4, the 🧬 stage selector unlocks account-wide — pick any stage from EV1 to EV4 and your buddy stays there until you choose another.</p>
+        <h3>Will I lose my current Core if I recycle?</h3>
+        <p>Never. It's archived as a permanent, immutable card you can reactivate any time.</p>
+        <h3>Best quick care routine?</h3>
+        <p>Feed → bath → one mini-game → a bit of affection. That tops every bar and lets health recover on its own.</p>
+      </div>
+      <div class="callout tip"><b>That's the whole game.</b> Keep the bars comfortable, let it sleep, play a little, collect Cores — and enjoy the company.</div>
+    </section>
+
+    <footer>
+      <p>PixieBuddy — desktop virtual pet · pixel-art · chiptune · 100% offline.<br>
+      <a href="index.html">← Back to the main site</a></p>
+    </footer>
+  </main>
+</div>
+
+<script>
+/* Mobile sidebar toggle */
+(function(){
+  const btn = document.getElementById('menuToggle');
+  const sb = document.getElementById('sidebar');
+  if (btn && sb) {
+    btn.addEventListener('click', () => sb.classList.toggle('open'));
+    sb.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' && window.innerWidth <= 900) sb.classList.remove('open');
+    });
+  }
+})();
+
+/* Scroll-spy: highlight the current section in the sidebar */
+(function(){
+  const links = Array.from(document.querySelectorAll('.sidebar a'));
+  const map = new Map();
+  links.forEach(a => {
+    const id = a.getAttribute('href').slice(1);
+    const sec = document.getElementById(id);
+    if (sec) map.set(sec, a);
+  });
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const a = map.get(e.target);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+  map.forEach((_, sec) => io.observe(sec));
+})();
+</script>
+</body>
+</html>

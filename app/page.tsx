@@ -1,8 +1,41 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { I18N } from "./i18n";
 
 const STORE_URL = "https://pixiebuddy.itch.io/pixiebuddy";
+type Language = "en" | "pt" | "es" | "fr" | "de" | "it" | "ru";
+
+const languages: { code: Language; region: string; label: string }[] = [
+  { code: "en", region: "GB", label: "English" },
+  { code: "pt", region: "BR", label: "Português" },
+  { code: "es", region: "ES", label: "Español" },
+  { code: "fr", region: "FR", label: "Français" },
+  { code: "de", region: "DE", label: "Deutsch" },
+  { code: "it", region: "IT", label: "Italiano" },
+  { code: "ru", region: "RU", label: "Русский" },
+];
+
+const achievementDefs = [
+  { id: "named", icon: "🏷️", unlocked: true },
+  { id: "first_feed", icon: "🔋", unlocked: true },
+  { id: "first_bath", icon: "🛁", unlocked: true },
+  { id: "first_pet", icon: "💕", unlocked: true },
+  { id: "first_game", icon: "🎮", unlocked: true },
+  { id: "best_friend", icon: "🤝", unlocked: true },
+  { id: "ev2", icon: "🌱", unlocked: true },
+  { id: "ev4", icon: "🌟", unlocked: true },
+  { id: "week_alive", icon: "📅", unlocked: true },
+  { id: "pomodoro_hour", icon: "⏲️", unlocked: true },
+  { id: "velha_win", icon: "⭕", unlocked: true },
+  { id: "rhythm_win", icon: "💧", unlocked: true },
+  { id: "hidecore_win", icon: "📡", unlocked: true },
+  { id: "mythic_core", icon: "👑", unlocked: false },
+  { id: "mythic_void", icon: "🌌", unlocked: false },
+  { id: "veteran", icon: "🎖️", unlocked: false },
+  { id: "month_alive", icon: "🌙", unlocked: false },
+  { id: "collector", icon: "🗂️", unlocked: false },
+];
 const evolution = [
   { stage: "EV0", name: "Core", time: "~30 sec fabrication", image: "/assets/pets/ev0.webp" },
   { stage: "EV1", name: "Baby", time: "24 hours", image: "/assets/pets/ev1.webp" },
@@ -40,12 +73,17 @@ function WindowBar({ title, accent = "#A86BE0" }: { title: string; accent?: stri
 
 export default function Home() {
   const [effects, setEffects] = useState(true);
+  const [language, setLanguage] = useState<Language>("en");
+  const [languageOpen, setLanguageOpen] = useState(false);
   const [heroStatus, setHeroStatus] = useState("Balanced module · nearby and curious");
   const [heroPet, setHeroPet] = useState("/assets/pets/amethyst-ev4.webp");
   const [petClicks, setPetClicks] = useState(0);
   const [selectedEvolution, setSelectedEvolution] = useState(4);
   const [selectedRarity, setSelectedRarity] = useState(3);
   const heroScene = useRef<HTMLDivElement>(null);
+  const languageMenu = useRef<HTMLDivElement>(null);
+  const dictionary = I18N[language] || I18N.en;
+  const t = (key: string, fallback = key) => dictionary[key] || I18N.en[key] || fallback;
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,7 +91,39 @@ export default function Home() {
     const enabled = stored == null ? !reduced : stored === "on";
     setEffects(enabled);
     document.documentElement.dataset.effects = enabled ? "on" : "off";
+    const storedLanguage = window.localStorage.getItem("pixiebuddy-language")?.slice(0, 2) as Language | undefined;
+    const browserLanguage = navigator.language.slice(0, 2) as Language;
+    const initialLanguage = languages.some(({ code }) => code === storedLanguage)
+      ? storedLanguage!
+      : languages.some(({ code }) => code === browserLanguage) ? browserLanguage : "en";
+    setLanguage(initialLanguage);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.title = t("page_title", "PixieBuddy — A tiny companion that lives on your desktop");
+    window.localStorage.setItem("pixiebuddy-language", language);
+  }, [language]);
+
+  useEffect(() => {
+    function closeLanguageMenu(event: globalThis.PointerEvent) {
+      if (!languageMenu.current?.contains(event.target as Node)) setLanguageOpen(false);
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setLanguageOpen(false);
+    }
+    window.addEventListener("pointerdown", closeLanguageMenu);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", closeLanguageMenu);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
+
+  function chooseLanguage(next: Language) {
+    setLanguage(next);
+    setLanguageOpen(false);
+  }
 
   function toggleEffects() {
     const next = !effects;
@@ -109,19 +179,39 @@ export default function Home() {
     <nav className="site-nav" aria-label="Primary navigation">
       <a className="brand" href="#top" aria-label="PixieBuddy home"><img src="/assets/icons/tray.webp" alt="" /><span>PixieBuddy</span></a>
       <div className="nav-links">
-        <a href="#care">Care</a><a href="#evolution">Evolution</a><a href="#rarities">Collection</a><a href="#games">Mini-games</a>
+        <a href="#care">{t("nav_features", "Features")}</a>
+        <a href="#evolution">{t("nav_evolution", "Evolution")}</a>
+        <a href="#rarities">{t("nav_rarity", "Rarities")}</a>
+        <a href="#games">{t("nav_games", "Mini-games")}</a>
+        <a href="#achievements">{t("nav_achievements", "Achievements")}</a>
+        <a href="#faq">{t("nav_faq", "FAQ")}</a>
+        <a className="nav-wiki" href="/wiki">{t("nav_guide", "Wiki")}</a>
         <button className="effects-toggle" onClick={toggleEffects} aria-pressed={!effects}><span aria-hidden="true">{effects ? "✦" : "◇"}</span> Effects {effects ? "on" : "off"}</button>
-        <PurchaseLink className="nav-buy">Get it · $1.99</PurchaseLink>
+        <div className="language-switch" ref={languageMenu}>
+          <button className="language-button" onClick={() => setLanguageOpen(open => !open)} aria-haspopup="menu" aria-expanded={languageOpen} aria-label="Select language">
+            <img src="/assets/icons/globe.png" alt="" />
+            <span>{languages.find(({ code }) => code === language)?.label}</span>
+            <b aria-hidden="true">▴</b>
+          </button>
+          {languageOpen && <div className="language-menu" role="menu">
+            {languages.map(item => <button key={item.code} className={language === item.code ? "active" : ""} onClick={() => chooseLanguage(item.code)} role="menuitem">
+              <span className="language-region">{item.region}</span>
+              <span>{item.label}</span>
+              <b aria-hidden="true">{language === item.code ? "✓" : ""}</b>
+            </button>)}
+          </div>}
+        </div>
+        <PurchaseLink className="nav-buy">$1.99</PurchaseLink>
       </div>
     </nav>
 
     <header className="hero section-shell" id="top">
       <div className="hero-copy reveal-now">
-        <div className="eyebrow"><i /> 100% offline · Windows desktop</div>
-        <p className="chapter-label">01 · Meet your desktop companion</p>
-        <h1>A tiny universe lives <span>on your desktop.</span></h1>
-        <p className="hero-lead">PixieBuddy is a pixel-art virtual pet that stays close while you work, rests at night, grows through four stages and turns every unique Core into a story worth keeping.</p>
-        <div className="hero-actions"><PurchaseLink className="button primary">Bring PixieBuddy home <strong>$1.99</strong></PurchaseLink><a className="button secondary" href="#evolution">Watch it evolve ↓</a></div>
+        <div className="eyebrow"><i /> {t("hero_badge", "100% offline · no AI · no internet")}</div>
+        <p className="chapter-label">01 · PixieBuddy</p>
+        <h1 dangerouslySetInnerHTML={{ __html: t("hero_title", "A tiny universe lives <span>on your desktop.</span>") }} />
+        <p className="hero-lead">{t("hero_sub", "A gentle pixel-art virtual pet that stays close while you work.")}</p>
+        <div className="hero-actions"><PurchaseLink className="button primary">{t("hero_cta1", "Bring PixieBuddy home")} <strong>$1.99</strong></PurchaseLink><a className="button secondary" href="#evolution">{t("hero_cta2", "Watch it evolve")}</a></div>
         <ul className="trust-row" aria-label="Product highlights"><li><b>Offline</b><span>No account or telemetry</span></li><li><b>Gentle</b><span>No death or punishment</span></li><li><b>Yours</b><span>Local save, unique seed</span></li></ul>
       </div>
       <div className="hero-visual" ref={heroScene} onPointerMove={moveScene} onPointerLeave={resetScene} aria-label="Interactive demonstration of PixieBuddy living on a desktop">
@@ -168,13 +258,32 @@ export default function Home() {
     </section>
 
     <section className="games-section section-shell" id="games">
-      <div className="section-heading reveal"><p className="chapter-label">Open a tiny window together</p><h2>Three mini-games,<br /><span>three different rhythms.</span></h2></div>
+      <div className="section-heading reveal"><p className="chapter-label">{t("game_tag", "Mini-games")}</p><h2>{t("game_head", "Play together, strengthen the bond")}</h2><p>{t("game_sub", "Every match rewards care and counts toward achievements.")}</p></div>
       <div className="game-windows">
         <article className="game-window game-ttt reveal"><WindowBar title="TIC-TAC-TOE" accent="#F2C24E" /><div className="ttt-board" aria-label="Tic-Tac-Toe board preview"><b>×</b><i /><em>○</em><i /><b>×</b><i /><em>○</em><i /><b>×</b></div><div className="game-copy"><img src="/assets/icons/tictactoe.png" alt="" /><span><b>Tic-Tac-Toe</b> Neon board, undo and a playful minimax pet.</span></div></article>
         <article className="game-window game-radar reveal"><WindowBar title="SCANNER MODE" accent="#3FB877" /><div className="radar-screen" aria-label="Scanner Mode radar preview"><i /><i /><i /><i /><span /><b>07.4s</b></div><div className="game-copy"><img src="/assets/icons/radar.png" alt="" /><span><b>Scanner Mode</b> Follow the translucent signal before it moves.</span></div></article>
         <article className="game-window game-beats reveal"><WindowBar title="PIXEL BEATS · D F J K" accent="#2E6FCB" /><div className="beat-lanes" aria-label="Pixel Beats lane preview">{[0,1,2,3].map(lane => <i key={lane}><em style={{ height: `${42 + lane * 17}px` }} /><b>{["D","F","J","K"][lane]}</b></i>)}</div><div className="game-copy"><img src="/assets/icons/drop.png" alt="" /><span><b>Pixel Beats</b> Four hold lanes, original chiptune arrangements and grades.</span></div></article>
       </div>
     </section>
+
+    <section className="achievements-section section-shell" id="achievements">
+      <div className="section-heading reveal">
+        <p className="chapter-label">{t("ach_tag", "🏆 Achievements")}</p>
+        <h2>{t("ach_head", "18 trophies to unlock")}</h2>
+        <p>{t("ach_sub", "Achievements record the path you took together without locking any pet rule.")}</p>
+        <div className="achievement-progress"><b>13</b><span>{t("ach_counter_suffix", "/ 18 unlocked")}</span><i><em style={{ width: `${(13 / 18) * 100}%` }} /></i></div>
+      </div>
+      <div className="achievement-grid reveal">
+        {achievementDefs.map(achievement => <article className={achievement.unlocked ? "achievement-card unlocked" : "achievement-card locked"} key={achievement.id}>
+          <span className="achievement-state" aria-label={achievement.unlocked ? "Unlocked" : "Locked"}>{achievement.unlocked ? "✓" : "🔒"}</span>
+          <span className="achievement-icon" aria-hidden="true">{achievement.icon}</span>
+          <h3>{t(`ach_${achievement.id}_t`, achievement.id)}</h3>
+          <p>{t(`ach_${achievement.id}_d`, "")}</p>
+          <span className={achievement.unlocked ? "achievement-tier" : "achievement-tier hard"}>{t(achievement.unlocked ? "ach_common" : "ach_hard", achievement.unlocked ? "Common" : "★ Hard")}</span>
+        </article>)}
+      </div>
+    </section>
+
     <section className="focus-section section-shell" id="focus">
       <div className="focus-scene reveal"><div className="lamp-light" aria-hidden="true" /><div className="pomodoro-card glass-panel"><span>FOCUS SESSION</span><div className="timer-ring"><b>25:00</b><small>FOCUS</small></div><div className="timer-controls"><i /><i /><i /></div></div><img src="/assets/pets/amethyst-sleep.webp" alt="PixieBuddy resting beside the Pomodoro timer" /><div className="focus-desk" aria-hidden="true" /></div>
       <div className="story-copy reveal"><p className="chapter-label">06 · Focus together</p><h2>Focus with a little company.</h2><p>Start a quiet Pomodoro from PixieBuddy’s menu. A floating glass timer keeps the cycle visible while your buddy sits nearby—no intrusive notifications, no invented rewards.</p><div className="quiet-note"><i /> Your focus time is stored locally with the rest of the app.</div></div>
@@ -182,15 +291,12 @@ export default function Home() {
 
     <section className="offline-section section-shell"><div className="offline-console reveal"><span className="offline-signal"><i /> LOCAL SIGNAL ONLY</span><h2>Truly offline.<br />Completely yours.</h2><p>No account. No AI at runtime. No internet connection. No telemetry.</p><div className="offline-grid"><span><b>save.json</b><small>Local state</small></span><span><b>7</b><small>Languages</small></span><span><b>18</b><small>Achievements</small></span><span><b>5</b><small>Buddies at once</small></span></div></div></section>
 
-    <section className="faq-section section-shell" id="faq"><div className="section-heading reveal"><p className="chapter-label">Before you bring one home</p><h2>Honest answers.<br /><span>No mystery pricing.</span></h2></div><div className="faq-list reveal">
-      <details open><summary>What does PixieBuddy cost?<i>+</i></summary><p>US$ 1.99 on itch.io. The store page is the official purchase and download destination.</p></details>
-      <details><summary>Does my pet die if I forget it?<i>+</i></summary><p>No. Stats change and illness can happen, but normal care or medicine always restores it. There is no death, grave or terminal aging.</p></details>
-      <details><summary>Which system is supported?<i>+</i></summary><p>The current release is for Windows desktop. Android and iOS are future directions, not part of this purchase.</p></details>
-      <details><summary>Does it need internet or a login?<i>+</i></summary><p>No. PixieBuddy runs offline, stores its state locally and asks for no account.</p></details>
+    <section className="faq-section section-shell" id="faq"><div className="section-heading reveal"><p className="chapter-label">{t("faq_tag", "Frequently asked")}</p><h2>{t("faq_head", "Everything you need to know")}</h2><p>{t("faq_sub", "Honest, direct answers about how PixieBuddy really works.")}</p></div><div className="faq-list reveal">
+      {Array.from({ length: 9 }, (_, index) => index + 1).map((number, index) => <details open={index === 0} key={number}><summary>{t(`faq${number}_q`)}<i>+</i></summary><p dangerouslySetInnerHTML={{ __html: t(`faq${number}_a`) }} /></details>)}
     </div></section>
 
     <section className="final-cta section-shell"><div className="final-window reveal"><div className="final-stars" aria-hidden="true" /><img src="/assets/pets/amethyst-ev4.webp" alt="Amethyst PixieBuddy waiting on a desktop" /><div><p className="chapter-label">07 · Bring PixieBuddy home</p><h2>Your desktop has room for a little more life.</h2><p>One gentle companion. A universe of unique Cores. Yours for US$ 1.99.</p><PurchaseLink className="button primary final-buy">Get PixieBuddy on itch.io <strong>$1.99</strong></PurchaseLink><small>Windows · 100% offline · External store opens in a new tab</small></div></div></section>
 
-    <footer><a className="brand" href="#top"><img src="/assets/icons/tray.webp" alt="" /><span>PixieBuddy</span></a><p>A classic desktop pet made with pixel art, warm chiptune and no pressure.</p><div><a href="#faq">FAQ</a><a href="#top">Back to top ↑</a></div></footer>
+    <footer><a className="brand" href="#top"><img src="/assets/icons/tray.webp" alt="" /><span>PixieBuddy</span></a><p>A classic desktop pet made with pixel art, warm chiptune and no pressure.</p><div><a href="/wiki">{t("nav_guide", "Wiki")}</a><a href="#faq">{t("nav_faq", "FAQ")}</a><a href="#top">{t("final_cta", "Back to top ↑")}</a></div></footer>
   </main>;
 }

@@ -10,13 +10,13 @@ export const metadata: Metadata = {
     title: "PixieBuddy — A tiny universe on your desktop",
     description: "Care, evolve, collect and focus together. 100% offline for Windows · US$ 1.99.",
     type: "website",
-    images: [{ url: "/og.png", width: 1536, height: 1024, alt: "PixieBuddy on a cozy cosmic desktop" }],
+    images: [{ url: "/og-achievements.png", width: 1536, height: 1024, alt: "PixieBuddy with its cosmic achievement shelf" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "PixieBuddy — A tiny universe on your desktop",
     description: "A gentle pixel-art desktop companion. 100% offline · US$ 1.99.",
-    images: ["/og.png"],
+    images: ["/og-achievements.png"],
   },
 };
 
