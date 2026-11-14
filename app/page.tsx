@@ -201,7 +201,7 @@ export default function Home() {
             </button>)}
           </div>}
         </div>
-        <PurchaseLink className="nav-buy">$1.99</PurchaseLink>
+        <PurchaseLink className="nav-buy">Free</PurchaseLink>
       </div>
     </nav>
 
@@ -211,7 +211,7 @@ export default function Home() {
         <p className="chapter-label">01 · PixieBuddy</p>
         <h1 dangerouslySetInnerHTML={{ __html: t("hero_title", "A tiny universe lives <span>on your desktop.</span>") }} />
         <p className="hero-lead">{t("hero_sub", "A gentle pixel-art virtual pet that stays close while you work.")}</p>
-        <div className="hero-actions"><PurchaseLink className="button primary">{t("hero_cta1", "Bring PixieBuddy home")} <strong>$1.99</strong></PurchaseLink><a className="button secondary" href="#evolution">{t("hero_cta2", "Watch it evolve")}</a></div>
+        <div className="hero-actions"><PurchaseLink className="button primary">{t("hero_cta1", "Get PixieBuddy")} <strong>Free</strong></PurchaseLink><a className="button secondary" href="#evolution">{t("hero_cta2", "Watch it evolve")}</a></div>
         <ul className="trust-row" aria-label="Product highlights"><li><b>Offline</b><span>No account or telemetry</span></li><li><b>Gentle</b><span>No death or punishment</span></li><li><b>Yours</b><span>Local save, unique seed</span></li></ul>
       </div>
       <div className="hero-visual" ref={heroScene} onPointerMove={moveScene} onPointerLeave={resetScene} aria-label="Interactive demonstration of PixieBuddy living on a desktop">
@@ -295,7 +295,7 @@ export default function Home() {
       {Array.from({ length: 9 }, (_, index) => index + 1).map((number, index) => <details open={index === 0} key={number}><summary>{t(`faq${number}_q`)}<i>+</i></summary><p dangerouslySetInnerHTML={{ __html: t(`faq${number}_a`) }} /></details>)}
     </div></section>
 
-    <section className="final-cta section-shell"><div className="final-window reveal"><div className="final-stars" aria-hidden="true" /><img src="/assets/pets/amethyst-ev4.webp" alt="Amethyst PixieBuddy waiting on a desktop" /><div><p className="chapter-label">07 · Bring PixieBuddy home</p><h2>Your desktop has room for a little more life.</h2><p>One gentle companion. A universe of unique Cores. Yours for US$ 1.99.</p><PurchaseLink className="button primary final-buy">Get PixieBuddy on itch.io <strong>$1.99</strong></PurchaseLink><small>Windows · 100% offline · External store opens in a new tab</small></div></div></section>
+    <section className="final-cta section-shell"><div className="final-window reveal"><div className="final-stars" aria-hidden="true" /><img src="/assets/pets/amethyst-ev4.webp" alt="Amethyst PixieBuddy waiting on a desktop" /><div><p className="chapter-label">07 · Bring PixieBuddy home</p><h2>Your desktop has room for a little more life.</h2><p>One gentle companion. A universe of unique Cores. Yours for free.</p><PurchaseLink className="button primary final-buy">Get PixieBuddy on itch.io <strong>Free</strong></PurchaseLink><small>Windows · 100% offline · External store opens in a new tab</small></div></div></section>
 
     <footer><a className="brand" href="#top"><img src="/assets/icons/tray.webp" alt="" /><span>PixieBuddy</span></a><p>A classic desktop pet made with pixel art, warm chiptune and no pressure.</p><div><a href="/wiki">{t("nav_guide", "Wiki")}</a><a href="#faq">{t("nav_faq", "FAQ")}</a><a href="#top">{t("final_cta", "Back to top ↑")}</a></div></footer>
   </main>;

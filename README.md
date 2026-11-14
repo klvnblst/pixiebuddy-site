@@ -1,8 +1,8 @@
 # PixieBuddy landing
 
-Interactive product landing for PixieBuddy. Built with vinext and official in-game sprites, icons and card renders.
+Official website for **PixieBuddy** ([pixiebuddy.app](https://pixiebuddy.app/)). Built with React, Vite/Vinext, and official in-game sprites, icons, and card renders.
 
-- Store: https://pixiebuddy.itch.io/pixiebuddy
-- Runtime: Cloudflare Workers via Sites
+- Download page: https://pixiebuddy.itch.io/pixiebuddy
 - Local preview: `npm run dev`
-- Production build: `npm run build`
+- Static build (Cloudflare Pages): `npm run build:static` (outputs to `out/`)
+- Vinext build: `npm run build`
